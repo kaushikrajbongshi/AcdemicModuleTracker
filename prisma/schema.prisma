@@ -50,9 +50,9 @@ model Faculty {
   updated_at  DateTime      @default(now()) @updatedAt @db.Timestamp(0)
   
   facultyRole       Faculty_Role      @relation(fields: [role], references: [id], onDelete: Restrict)
-  facultyCourses    FacultyCourse[]   // ✅ Added
-  completedTopics   Topic[]           // ✅ Added
-  completedSubtopics SubTopic[]       // ✅ Added
+  facultyCourses    FacultyCourse[]   
+  completedTopics   Topic[]           
+  completedSubtopics SubTopic[]       
 
   @@index([role])
   @@map("faculty")

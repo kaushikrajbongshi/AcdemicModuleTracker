@@ -1,3 +1,5 @@
-export default function AddFaculty() {
-  return <h1 className="text-2xl text-black">Add Faculty</h1>;
+import AddFaculty from "@/components/admin/Faculty/AddFaculty";
+
+export default function addFaculty() {
+  return <AddFaculty />;
 }

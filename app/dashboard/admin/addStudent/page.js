@@ -1,3 +1,5 @@
-export default function AddStudent() {
-  return <h1 className="text-xl font-bold">Add Student</h1>;
+import AddStudentForm from "@/components/admin/student/AddStudentForm";
+
+export default function AddStudentPage() {
+  return <AddStudentForm />;
 }

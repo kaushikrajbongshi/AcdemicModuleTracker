@@ -62,7 +62,7 @@ export async function POST(req) {
 
     // Set cookie - AWAIT cookies() first
     const cookieStore = await cookies();
-    cookieStore.set("token", token, {
+    cookieStore.set("LOGIN_INFO", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

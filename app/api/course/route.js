@@ -1,36 +1,19 @@
 import { NextResponse } from "next/server";
 import { roleGuard } from "@/utils/roleguard";
-import { addTopic } from "./topic.controller";
+import { getAllCourse } from "./course.controller";
 
-export async function POST(req) {
+export async function GET(req) {
   // Role guard
   // const guard = await roleGuard(["admin"])(req);
   // if (guard) return guard;
 
-  // Get data
-  const {
-    topic_name,
-    topic_description,
-    courseId,
-    isCompleted,
-    remark,
-    completedByFacultyId,
-  } = await req.json();
-
   try {
     // Save faculty
-    const result = await addTopic({
-      topic_name,
-      topic_description,
-      courseId,
-      isCompleted,
-      remark,
-      completedByFacultyId,
-    });
+    const result = await getAllCourse();
 
     // 6. Return success
     return NextResponse.json(
-      { success: true, message: "Successfully added Topic", result },
+      { success: true, message: "Successfully Data fetch", result },
       { status: 200 }
     );
   } catch (error) {

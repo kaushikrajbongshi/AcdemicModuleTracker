@@ -14,6 +14,7 @@ export async function POST(req) {
     faculty_id,
     studentID,
     email,
+    name,
     username,
     password,
     currentSem,
@@ -42,6 +43,7 @@ export async function POST(req) {
       const result = await createFaculty({
         faculty_id,
         email,
+        name,
         username,
         password: hashPassword,
         role,
