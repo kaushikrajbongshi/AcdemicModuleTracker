@@ -166,19 +166,37 @@ export default function CourseTopicManager() {
   };
 
   /* ================= DELETE NODE ================= */
-  const deleteNode = (nodeId) => {
-    setConfirmAction(() => () => {
-      const deleteRecursively = (nodes) =>
-        nodes
-          .filter((node) => node.id !== nodeId)
-          .map((node) => ({
-            ...node,
-            children: deleteRecursively(node.children || []),
-          }));
+  const deleteNode = (node) => {
+    console.log(node.id);
 
-      setTree(deleteRecursively(tree));
-      setshowDelete(false);
+    setConfirmAction(() => async () => {
+      try {
+        // 🔥 BACKEND DELETE
+        if (node.type === "topic") {
+          const res = await fetch(`/api/admin/topic/delete/${node.id}`, {
+            method: "DELETE",
+          });
+          console.log(await res.json());
+        } else {
+          const res = await fetch(
+            `/api/admin/subtopic/delete/${node.id}`,
+            {
+              method: "DELETE",
+            }
+          );
+          console.log(await res.json());
+        }
+
+        // 🔁 Reload tree from DB (SAFE & SIMPLE)
+        await fetchTopicsByCourse(selectedCourse);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete");
+      } finally {
+        setshowDelete(false);
+      }
     });
+
     setshowDelete(true);
   };
 
@@ -288,23 +306,6 @@ export default function CourseTopicManager() {
       alert("Something went wrong");
     }
   };
-
-  //=============================================================
-  /* ================= ADD TOPIC (UI ONLY) ================= */
-  // const addTopic = () => {
-  //   const name = prompt("Enter topic name");
-  //   if (!name) return;
-
-  //   setTree([
-  //     ...tree,
-  //     {
-  //       id: Date.now(),
-  //       name,
-  //       isOpen: true,
-  //       children: [],
-  //     },
-  //   ]);
-  // };
 
   const openAddTopicModal = () => {
     setNewTopicName("");
@@ -422,7 +423,7 @@ export default function CourseTopicManager() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                deleteNode(node.id);
+                deleteNode(node);
               }}
               className="p-1 rounded hover:bg-red-100"
               title="Delete"
