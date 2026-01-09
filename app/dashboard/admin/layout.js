@@ -144,6 +144,15 @@ export default function AdminDashboardLayout({ children }) {
     setOpenMenu(openMenu === title ? null : title);
   };
 
+  const handleLogout = async () => {
+    const res = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+    const result = await res.json();
+    if (result.success) {
+      router.push("/login/admin");
+    }
+  };
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50">
       {/* TOP NAVBAR */}
@@ -202,7 +211,7 @@ export default function AdminDashboardLayout({ children }) {
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full text-left transition-colors"
                   onClick={() => {
                     setDropdownOpen(false);
-                    console.log("Logout clicked");
+                    handleLogout();
                   }}
                 >
                   <LogOut className="w-4 h-4" />
