@@ -1,37 +1,34 @@
 import { prisma } from "@/lib/prisma";
-import { getAllDescendantSubtopicIds } from "@/utils/subtopic-utils";
 import { NextResponse } from "next/server";
+
 export async function DELETE(req, { params }) {
   const Params = await params;
+  console.log("params", Params);
+
+  const id = Params.id;
+  console.log("id", id);
   try {
-    const subtopicId = Number(Params.id);
-    console.log("this is id:", subtopicId);
+    const topicId = Number(Params.id);
+    console.log("this is id:", topicId);
 
-    if (!subtopicId) {
-      return Response.json({ error: "Invalid subtopic id" }, { status: 400 });
+    if (!topicId) {
+      return Response.json({ error: "Invalid topic id" }, { status: 400 });
     }
 
-    // 1️⃣ find all descendants
-    const descendantIds = await getAllDescendantSubtopicIds(prisma, subtopicId);
+    const res_topic = await prisma.topic.delete({
+      where: { topic_id: topicId },
+    });
 
-    // 2️⃣ delete descendants FIRST
-    if (descendantIds.length > 0) {
-      await prisma.subTopic.deleteMany({
-        where: {
-          subtopic_id: { in: descendantIds },
-        },
-      });
+    const res_subtopic = await prisma.subTopic.deleteMany({
+      where: { topicId: topicId },
+    });
+
+    if (res_topic || res_subtopic) {
+      return NextResponse.json(
+        { status: true },
+        { message: "Topic or Subtopic Deleted sucessful" }
+      );
     }
-
-    // 3️⃣ delete selected subtopic
-    await prisma.subTopic.delete({
-      where: { subtopic_id: subtopicId },
-    });
-
-    return NextResponse.json({
-      success: true,
-      deletedCount: descendantIds.length + 1,
-    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

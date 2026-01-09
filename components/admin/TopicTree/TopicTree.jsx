@@ -22,6 +22,10 @@ export default function CourseTopicManager() {
 
   const [confirmAction, setConfirmAction] = useState(null);
   const [treeLoading, setTreeLoading] = useState(false);
+  const [deleteInfo, setDeleteInfo] = useState({
+    count: 0,
+    type: null, // "topic" | "subtopic"
+  });
 
   /* ================= FETCH COURSES ================= */
   const fetchCourse = async () => {
@@ -166,38 +170,50 @@ export default function CourseTopicManager() {
   };
 
   /* ================= DELETE NODE ================= */
-  const deleteNode = (node) => {
-    console.log(node.id);
+  const deleteNode = async (node) => {
+    try {
+      let res;
 
-    setConfirmAction(() => async () => {
-      try {
-        // 🔥 BACKEND DELETE
-        if (node.type === "topic") {
-          const res = await fetch(`/api/admin/topic/delete/${node.id}`, {
-            method: "DELETE",
-          });
-          console.log(await res.json());
-        } else {
-          const res = await fetch(
-            `/api/admin/subtopic/delete/${node.id}`,
-            {
-              method: "DELETE",
-            }
-          );
-          console.log(await res.json());
-        }
-
-        // 🔁 Reload tree from DB (SAFE & SIMPLE)
-        await fetchTopicsByCourse(selectedCourse);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to delete");
-      } finally {
-        setshowDelete(false);
+      // 🔍 FETCH COUNT FIRST
+      if (node.type === "topic") {
+        res = await fetch(`/api/admin/topic/${node.id}/count`);
+      } else {
+        res = await fetch(`/api/admin/subtopic/${node.id}/count`);
       }
-    });
 
-    setshowDelete(true);
+      const data = await res.json();
+
+      setDeleteInfo({
+        count: data.count,
+        type: node.type,
+      });
+
+      // 🔐 Store final delete action
+      setConfirmAction(() => async () => {
+        try {
+          if (node.type === "topic") {
+            await fetch(`/api/admin/topic/delete/${node.id}`, {
+              method: "DELETE",
+            });
+          } else {
+            await fetch(`/api/admin/subtopic/delete/${node.id}`, {
+              method: "DELETE",
+            });
+          }
+
+          await fetchTopicsByCourse(selectedCourse);
+        } catch (err) {
+          alert("Delete failed");
+        } finally {
+          setshowDelete(false);
+        }
+      });
+
+      setshowDelete(true);
+    } catch (err) {
+      console.error(err);
+      alert("Unable to calculate delete impact");
+    }
   };
 
   const handleConfirm = () => {
@@ -230,7 +246,7 @@ export default function CourseTopicManager() {
     if (!newSubTopicName.trim()) return;
 
     try {
-      const res = await fetch("/api/admin/subtopic/addSubTopic", {
+      const res = await fetch("/api/admin/subtopic/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -364,7 +380,7 @@ export default function CourseTopicManager() {
     try {
       setTreeLoading(true); // 🔄 show spinner
 
-      await fetch("/api/admin/topic/addTopic", {
+      await fetch("/api/admin/topic/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -494,9 +510,14 @@ export default function CourseTopicManager() {
               Confirm Deletion
             </h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this item? This action cannot be
-              undone.
+              Deleting this {deleteInfo.type} will delete{" "}
+              <strong>{deleteInfo.count}</strong> related subtopics. This action
+              cannot be undone.
+              <br />
+              <br />
+              Do you want to continue?
             </p>
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={handleCancel}
