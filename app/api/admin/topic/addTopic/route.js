@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { roleGuard } from "@/utils/roleguard";
 import { addTopic } from "./topic.controller";
 
-export async function GET(req) {
+export async function POST(req) {
   // Role guard
   // const guard = await roleGuard(["admin"])(req);
   // if (guard) return guard;
