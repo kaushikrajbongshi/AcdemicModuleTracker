@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
+import {
   LayoutDashboard,
   UserPlus,
   Users,
@@ -22,11 +22,14 @@ import {
   Trash2,
   Edit,
   ClipboardList,
+  ChartSpline,
+  ListTodo,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboardLayout({ children }) {
+  const router = useRouter();
   const [pathname, setPathname] = useState("/dashboard/admin");
-
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -36,41 +39,38 @@ export default function AdminDashboardLayout({ children }) {
     {
       title: "Dashboard",
       icon: LayoutDashboard,
-      href: "/dashboard/admin",
+      href: "/dashboard/faculty",
     },
     {
-      title: "Student",
-      icon: UserPlus,
-      children: [
-        { name: "Add Student", href: "/dashboard/admin/addStudent", icon: UserCheck },
-        { name: "Delete Student", href: "/dashboard/admin/deleteStudent", icon: UserMinus },
-        { name: "Update Student", href: "/dashboard/admin/updateStudent", icon: UserCog },
-      ],
-    },
-    {
-      title: "Faculty",
-      icon: Users,
-      children: [
-        { name: "Add Faculty", href: "/dashboard/admin/addFaculty", icon: Plus },
-        { name: "Delete Faculty", href: "/dashboard/admin/deleteFaculty", icon: Trash2 },
-      ],
+      title: "Topic Coverage",
+      icon: ListTodo,
+      href: "/dashboard/faculty/course-coverage",
     },
     {
       title: "Course",
       icon: BookOpen,
       children: [
-        { name: "Add Course", href: "/dashboard/admin/addCourse", icon: Plus },
-        { name: "Assign Course", href: "/dashboard/admin/assignCourse", icon: ClipboardList },
+        {
+          name: "Course Progress",
+          href: "/dashboard/faculty/course-progress",
+          icon: ChartSpline,
+        },
+        {
+          name: "Assigned Course",
+          href: "/dashboard/faculty/assigned-course",
+          icon: ClipboardList,
+        },
       ],
     },
     {
       title: "Reports",
       icon: FileText,
-      href: "/dashboard/admin/reports",
+      href: "/dashboard/faculty/report",
     },
   ];
 
   const handleNavigation = (href) => {
+    router.push(href);
     setPathname(href);
     setMobileOpen(false);
   };
@@ -85,6 +85,16 @@ export default function AdminDashboardLayout({ children }) {
 
   const toggleMenu = (title) => {
     setOpenMenu(openMenu === title ? null : title);
+  };
+
+  const handleLogout = async () => {
+    const res = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+    const result = await res.json();
+    if (result.success) {
+      router.push("/login");
+    }
   };
 
   return (
@@ -108,7 +118,9 @@ export default function AdminDashboardLayout({ children }) {
             <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
               <User className="w-4 h-4 text-indigo-600" />
             </div>
-            <span className="text-sm font-medium text-gray-700">Kaushik Rajbongshi</span>
+            <span className="text-sm font-medium text-gray-700">
+              Kaushik Rajbongshi
+            </span>
             <ChevronDown className="w-4 h-4 text-gray-500" />
           </button>
 
@@ -143,7 +155,7 @@ export default function AdminDashboardLayout({ children }) {
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full text-left transition-colors"
                   onClick={() => {
                     setDropdownOpen(false);
-                    console.log("Logout clicked");
+                    handleLogout();
                   }}
                 >
                   <LogOut className="w-4 h-4" />
@@ -219,17 +231,25 @@ export default function AdminDashboardLayout({ children }) {
                         } ${collapsed ? "justify-center" : ""}`}
                         title={collapsed ? item.title : ""}
                       >
-                        <Icon className={`w-5 h-5 flex-shrink-0 ${
-                          active ? "text-indigo-600" : "text-gray-500 group-hover:text-gray-700"
-                        }`} />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                        <Icon
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            active
+                              ? "text-indigo-600"
+                              : "text-gray-500 group-hover:text-gray-700"
+                          }`}
+                        />
+                        {!collapsed && (
+                          <span className="text-sm">{item.title}</span>
+                        )}
                       </a>
                     );
                   }
 
                   // DROPDOWN MENU
                   const isOpen = openMenu === item.title;
-                  const hasActiveChild = item.children?.some((sub) => sub.href === pathname);
+                  const hasActiveChild = item.children?.some(
+                    (sub) => sub.href === pathname
+                  );
 
                   return (
                     <div key={item.title}>
@@ -242,15 +262,23 @@ export default function AdminDashboardLayout({ children }) {
                         } ${collapsed ? "justify-center" : ""}`}
                         title={collapsed ? item.title : ""}
                       >
-                        <Icon className={`w-5 h-5 flex-shrink-0 ${
-                          hasActiveChild ? "text-indigo-600" : "text-gray-500 group-hover:text-gray-700"
-                        }`} />
+                        <Icon
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            hasActiveChild
+                              ? "text-indigo-600"
+                              : "text-gray-500 group-hover:text-gray-700"
+                          }`}
+                        />
                         {!collapsed && (
                           <>
-                            <span className="flex-1 text-left text-sm">{item.title}</span>
-                            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
-                              isOpen ? "rotate-180" : ""
-                            }`} />
+                            <span className="flex-1 text-left text-sm">
+                              {item.title}
+                            </span>
+                            <ChevronDown
+                              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                                isOpen ? "rotate-180" : ""
+                              }`}
+                            />
                           </>
                         )}
                       </button>
@@ -259,7 +287,9 @@ export default function AdminDashboardLayout({ children }) {
                       {!collapsed && (
                         <div
                           className={`transition-all duration-200 ease-in-out ${
-                            isOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"
+                            isOpen
+                              ? "max-h-96 opacity-100 mt-1"
+                              : "max-h-0 opacity-0"
                           } overflow-hidden`}
                         >
                           <div className="pl-11 pr-2 space-y-1">

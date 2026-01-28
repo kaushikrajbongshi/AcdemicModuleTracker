@@ -7,7 +7,6 @@ datasource db {
   provider = "mysql"
 }
 
-
 // =======================
 // 1. Admin Model
 // =======================
@@ -27,7 +26,7 @@ model Admin {
 // 2. Faculty_Role Model
 // =======================
 model Faculty_Role {
-  id          Int              @id
+  id          Int             @id
   description FacultyRoleType
   faculties   Faculty[]
 
@@ -38,21 +37,22 @@ model Faculty_Role {
 // 3. Faculty Model
 // =======================
 model Faculty {
-  id          Int           @id @default(autoincrement())
-  faculty_id  String        @unique @db.VarChar(50)
-  email       String        @unique @db.VarChar(150)
-  username    String        @db.VarChar(100)
-  name        String        @db.VarChar(100)
-  password    String        @db.VarChar(255)
-  status      Status        @default(A)
-  role        Int
-  created_at  DateTime      @default(now()) @db.Timestamp(0)
-  updated_at  DateTime      @default(now()) @updatedAt @db.Timestamp(0)
-  
-  facultyRole       Faculty_Role      @relation(fields: [role], references: [id], onDelete: Restrict)
-  facultyCourses    FacultyCourse[]   
-  completedTopics   Topic[]           
-  completedSubtopics SubTopic[]       
+  id         Int      @id @default(autoincrement())
+  faculty_id String   @unique @db.VarChar(50)
+  email      String   @unique @db.VarChar(150)
+  username   String   @db.VarChar(100)
+  name       String   @db.VarChar(100)
+  password   String   @db.VarChar(255)
+  status     Status   @default(A)
+  role       Int
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+
+  facultyRole       Faculty_Role       @relation(fields: [role], references: [id])
+  facultyCourses    FacultyCourse[]
+  topicCoverages    TopicCoverage[]
+  subTopicCoverages SubTopicCoverage[]
 
   @@index([role])
   @@map("faculty")
@@ -62,21 +62,22 @@ model Faculty {
 // 4. Student Model
 // =======================
 model Student {
-  id         Int      @id @default(autoincrement())
-  studentID  String   @unique @db.VarChar(100) @default(cuid())
-  email      String   @unique @db.VarChar(150)
-  name       String   @db.VarChar(100)
-  password   String   @db.VarChar(255)
-  status     Status   @default(A)
-  currentSem String   @db.VarChar(2) @default("01")
-  season     String   @db.VarChar(50)
-  created_at DateTime @default(now()) @db.Timestamp(0)
-  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
-  semester    Semester   @relation(fields: [currentSem], references: [semester_id], onDelete: Restrict) 
-  studentCourses  StudentCourse[]  
+  id             Int             @id @default(autoincrement())
+  studentID      String          @unique @default(cuid()) @db.VarChar(100)
+  email          String          @unique @db.VarChar(150)
+  name           String          @db.VarChar(100)
+  password       String          @db.VarChar(255)
+  status         Status          @default(A)
+  currentSem     String          @default("01") @db.VarChar(2)
+  academicYearId Int
+  created_at     DateTime        @default(now()) @db.Timestamp(0)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamp(0)
+  semester       Semester        @relation(fields: [currentSem], references: [semester_id], onDelete: Restrict)
+  studentCourses StudentCourse[]
+  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id])
 
   @@index([currentSem])
-  @@index([season])
+  @@index([academicYearId])
   @@map("student")
 }
 
@@ -97,11 +98,12 @@ enum FacultyRoleType {
 // Department Model
 // =======================
 model Department {
-  dept_id   String   @id @db.VarChar(10)
-  dept_name String   @db.VarChar(100)
-  
+  dept_id   String @id @db.VarChar(10)
+  dept_name String @db.VarChar(100)
+
   // Relation: Department has many courses
-  courses   Course[]
+  courses Course[]
+
   @@map("department")
 }
 
@@ -109,36 +111,39 @@ model Department {
 // Semester Model
 // =======================
 model Semester {
-  semester_id   String    @id @db.VarChar(2)
-  semester_name String    @db.VarChar(20)
-  
-  // Relations
-  courses       Course[]   // Semester has many courses
-  students      Student[]  // Semester has many students
-   @@map("semester")
-}
+  semester_id   String @id @db.VarChar(2)
+  semester_name String @db.VarChar(20)
 
+  // Relations
+  courses           Course[] // Semester has many courses
+  students          Student[] // Semester has many students
+  topicCoverages    TopicCoverage[]
+  subTopicCoverages SubTopicCoverage[]
+
+  @@map("semester")
+}
 
 // =======================
 // Course Model
 // =======================
 model Course {
-  course_id   String     @id 
-  course_name String     @db.VarChar(100)
-  semester_id String     @db.VarChar(2)
-  dept_id     String     @db.VarChar(10)
-  
-  department  Department @relation(fields: [dept_id], references: [dept_id], onDelete: Restrict) 
-  semester    Semester   @relation(fields: [semester_id], references: [semester_id], onDelete: Restrict) 
-  facultyCourses  FacultyCourse[]
-  topics          Topic[]
-  studentCourses  StudentCourse[] 
+  course_id   String @id
+  course_name String @db.VarChar(100)
+  semester_id String @db.VarChar(2)
+  dept_id     String @db.VarChar(10)
+
+  department        Department         @relation(fields: [dept_id], references: [dept_id])
+  semester          Semester           @relation(fields: [semester_id], references: [semester_id])
+  facultyCourses    FacultyCourse[]
+  topics            Topic[]
+  studentCourses    StudentCourse[]
+  topicCoverages    TopicCoverage[]
+  subTopicCoverages SubTopicCoverage[]
 
   @@index([dept_id])
   @@index([semester_id])
   @@map("course")
 }
-
 
 // =======================
 // Faculty-Course Mapping 
@@ -146,65 +151,117 @@ model Course {
 model FacultyCourse {
   id         Int      @id @default(autoincrement())
   facultyId  Int
-  courseId   String      
+  courseId   String
   created_at DateTime @default(now()) @db.Timestamp(0)
 
-  faculty    Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
+  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
 
-  @@unique([facultyId, courseId]) 
+  @@unique([facultyId, courseId])
   @@index([facultyId])
   @@index([courseId])
   @@map("faculty_course_mapping")
 }
 
-
 // =======================
 // Topic Table
 // =======================
 model Topic {
-  topic_id             Int        @id @default(autoincrement())
-  topic_name           String     @db.VarChar(255)
-  topic_description    String?    @db.Text
-  courseId             String
-  isCompleted          Boolean    @default(false)
-  remark               String?    @db.Text
-  completedByFacultyId Int?
-  completedAt          DateTime?  @db.Timestamp(0)
+  topic_id          Int     @id @default(autoincrement())
+  topic_name        String  @db.VarChar(255)
+  topic_description String? @db.Text
+  courseId          String
 
-  course               Course     @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
-  completedByFaculty   Faculty?   @relation(fields: [completedByFacultyId], references: [id], onDelete: SetNull)
-  subtopics            SubTopic[]
+  course         Course          @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
+  subtopics      SubTopic[]
+  topicCoverages TopicCoverage[]
 
   @@index([courseId])
-  @@index([completedByFacultyId])
   @@map("topic")
 }
-
 
 // =======================
 // Sub-Topic Table 
 // =======================
 model SubTopic {
-  subtopic_id          Int        @id @default(autoincrement())
-  subtopic_name        String     @db.VarChar(255)
-  subtopic_description String?    @db.Text
+  subtopic_id          Int     @id @default(autoincrement())
+  subtopic_name        String  @db.VarChar(255)
+  subtopic_description String? @db.Text
   topicId              Int?
   parentId             Int?
-  isCompleted          Boolean    @default(false)
-  remark               String?    @db.Text
-  completedAt          DateTime?  @db.Timestamp(0)
-  completedByFacultyId Int?
 
-  topic                Topic?     @relation(fields: [topicId], references: [topic_id], onDelete: Cascade)
-  parent               SubTopic?  @relation("SubTopicHierarchy", fields: [parentId], references: [subtopic_id], onDelete: Cascade)
-  children             SubTopic[] @relation("SubTopicHierarchy")
-  completedByFaculty   Faculty?   @relation(fields: [completedByFacultyId], references: [id], onDelete: SetNull)
+  topic             Topic?             @relation(fields: [topicId], references: [topic_id], onDelete: Cascade)
+  parent            SubTopic?          @relation("SubTopicHierarchy", fields: [parentId], references: [subtopic_id])
+  children          SubTopic[]         @relation("SubTopicHierarchy")
+  subTopicCoverages SubTopicCoverage[]
 
   @@index([topicId])
   @@index([parentId])
-  @@index([completedByFacultyId])
   @@map("subtopic")
+}
+
+// =======================
+//batch
+//========================
+model AcademicYear {
+  id                Int                @id @default(autoincrement())
+  label             String             @unique // "2023-24", "2024-25"
+  isActive          Boolean            @default(false)
+  topicCoverages    TopicCoverage[]
+  subTopicCoverages SubTopicCoverage[]
+  students          Student[]
+
+  @@map("academic_year")
+}
+
+// =======================
+// Topic covarage
+// =======================
+model TopicCoverage {
+  id             Int      @id @default(autoincrement())
+  topicId        Int
+  facultyId      Int
+  courseId       String
+  semesterId     String
+  academicYearId Int
+  taughtOn       DateTime @db.Date // actual teaching date
+  remark         String?
+  createdAt      DateTime @default(now()) // record creation time
+
+  topic        Topic        @relation(fields: [topicId], references: [topic_id])
+  faculty      Faculty      @relation(fields: [facultyId], references: [id])
+  course       Course       @relation(fields: [courseId], references: [course_id])
+  semester     Semester     @relation(fields: [semesterId], references: [semester_id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([topicId, facultyId, courseId, semesterId, academicYearId])
+  @@index([courseId, semesterId, academicYearId])
+  @@map("topic_coverage")
+}
+
+// =======================
+// Sub Topic covarage
+// =======================
+model SubTopicCoverage {
+  id             Int      @id @default(autoincrement())
+  subtopicId     Int
+  facultyId      Int
+  courseId       String
+  semesterId     String
+  academicYearId Int
+  taughtOn       DateTime @db.Date
+  remark         String?
+  createdAt      DateTime @default(now())
+
+  subtopic     SubTopic     @relation(fields: [subtopicId], references: [subtopic_id])
+  faculty      Faculty      @relation(fields: [facultyId], references: [id])
+  course       Course       @relation(fields: [courseId], references: [course_id])
+  semester     Semester     @relation(fields: [semesterId], references: [semester_id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([subtopicId, facultyId, courseId, semesterId, academicYearId])
+  @@index([courseId, semesterId, academicYearId])
+  @@map("subtopic_coverage")
 }
 
 // =======================
@@ -216,10 +273,10 @@ model StudentCourse {
   courseId   String
   created_at DateTime @default(now()) @db.Timestamp(0)
 
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
 
-  @@unique([studentId, courseId]) 
+  @@unique([studentId, courseId])
   @@index([studentId])
   @@index([courseId])
   @@map("student_course_mapping")

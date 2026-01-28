@@ -43,7 +43,7 @@ export default function CourseTopicManager() {
   const fetchTopicsByCourse = async (courseId) => {
     const res = await fetch(
       `/api/admin/topic/fetchAllTopic?courseId=${courseId}`,
-      { cache: "no-store" }
+      { cache: "no-store" },
     );
     const fetchedTopic = await res.json();
 
@@ -100,7 +100,7 @@ export default function CourseTopicManager() {
   /* ================= FETCH SUBTOPICS ================= */
   const fetchSubTopics = async (topicId) => {
     const res = await fetch(
-      `/api/admin/subtopic/fetchAllsubTopic?topicId=${topicId}`
+      `/api/admin/subtopic/fetchAllsubTopic?topicId=${topicId}`,
     );
     const data = await res.json();
     return buildSubTree(data.result);
@@ -192,13 +192,17 @@ export default function CourseTopicManager() {
       setConfirmAction(() => async () => {
         try {
           if (node.type === "topic") {
-            await fetch(`/api/admin/topic/delete/${node.id}`, {
+            const res = await fetch(`/api/admin/topic/delete/${node.id}`, {
               method: "DELETE",
             });
+            const data = await res.json();
+            console.log(data);
           } else {
-            await fetch(`/api/admin/subtopic/delete/${node.id}`, {
+            const res = await fetch(`/api/admin/subtopic/delete/${node.id}`, {
               method: "DELETE",
             });
+            const data = await res.json();
+            console.log(data);
           }
 
           await fetchTopicsByCourse(selectedCourse);
