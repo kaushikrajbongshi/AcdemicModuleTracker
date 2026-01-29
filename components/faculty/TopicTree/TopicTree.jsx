@@ -33,9 +33,9 @@ export default function MarkCourseTopic() {
       `/api/admin/topic/fetchAllTopic?courseId=${courseId}`,
       { cache: "no-store" },
     );
-    const topics = res.result ?? res.data ?? [];
+    const fetchedTopic = await res.json();
 
-    const topicTree = topics.map((t) => ({
+    const topicTree = fetchedTopic.result.map((t) => ({
       id: t.topic_id,
       name: t.topic_name,
       topicId: t.topic_id,
