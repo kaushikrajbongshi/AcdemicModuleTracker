@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { roleGuard } from "@/utils/roleguard";
-import { getAllDescendantSubtopicIdsMark } from "@/utils/mark-subtopic-utils";
 
+/* ======================================================
+   MARK TOPIC (and ALL its subtopics)
+   ====================================================== */
 export async function POST(request, { params }) {
   const Params = await params;
   try {
@@ -11,6 +12,7 @@ export async function POST(request, { params }) {
 
     const { courseId, semesterId, academic_YearId, faculty_Id } =
       await request.json();
+
     const facultyId = Number(faculty_Id);
     const academicYearId = Number(academic_YearId);
 
@@ -40,7 +42,7 @@ export async function POST(request, { params }) {
     }
 
     await prisma.$transaction(async (tx) => {
-      // 1️⃣ create topic coverage
+      // 1️⃣ mark topic
       await tx.topicCoverage.create({
         data: {
           topicId,
@@ -52,29 +54,35 @@ export async function POST(request, { params }) {
         },
       });
 
-      // 2️⃣ create subtopic coverages
-      const subtopicIds = await getAllDescendantSubtopicIdsMark(tx, topicId);
+      // 2️⃣ fetch ALL subtopics of this topic (flat, includes nested)
+      const subtopics = await tx.subTopic.findMany({
+        where: { topicId },
+        select: { subtopic_id: true },
+      });
 
-      if (subtopicIds.length > 0) {
+      // 3️⃣ mark ALL subtopics
+      if (subtopics.length > 0) {
         await tx.subTopicCoverage.createMany({
-          data: subtopicIds.map((id) => ({
-            subtopicId: id,
+          data: subtopics.map((id) => ({
+            subtopicId: id.subtopic_id,
+
             facultyId,
             courseId,
             semesterId,
             academicYearId,
             taughtOn: new Date(),
           })),
+          skipDuplicates: true,
         });
       }
     });
 
     return NextResponse.json({
       success: true,
-      message: "Topic and subtopics marked successfully",
+      message: "Topic and all subtopics marked successfully",
     });
   } catch (error) {
-    console.error(error);
+    console.error("MARK TOPIC ERROR:", error);
     return NextResponse.json(
       { success: false, message: "Failed to mark topic" },
       { status: 500 },
@@ -82,15 +90,27 @@ export async function POST(request, { params }) {
   }
 }
 
-//For Unmark
+/* ======================================================
+   UNMARK TOPIC (and ALL its subtopics)
+   ====================================================== */
 export async function DELETE(request, { params }) {
+  const Params = await params;
   try {
-    const Params = await params;
+    // const facultyId = auth.user.id;
     const topicId = Number(Params.topicId);
-    console.log(topicId);
 
     const { courseId, semesterId, academic_YearId, faculty_Id } =
       await request.json();
+    console.log(
+      "c",
+      courseId,
+      "s",
+      semesterId,
+      "a",
+      academic_YearId,
+      "f",
+      faculty_Id,
+    );
     const facultyId = Number(faculty_Id);
     const academicYearId = Number(academic_YearId);
 
@@ -119,12 +139,17 @@ export async function DELETE(request, { params }) {
     }
 
     await prisma.$transaction(async (tx) => {
-      const subtopicIds = await getAllDescendantSubtopicIdsMark(tx, topicId);
+      // 1️⃣ fetch ALL subtopics of this topic
+      const subtopics = await tx.subTopic.findMany({
+        where: { topicId },
+        select: { subtopic_id: true },
+      });
 
-      if (subtopicIds.length > 0) {
+      // 2️⃣ unmark subtopics
+      if (subtopics.length > 0) {
         await tx.subTopicCoverage.deleteMany({
           where: {
-            subtopicId: { in: subtopicIds },
+            subtopicId: { in: subtopics.map((s) => s.subtopic_id) },
             facultyId,
             courseId,
             semesterId,
@@ -133,6 +158,7 @@ export async function DELETE(request, { params }) {
         });
       }
 
+      // 3️⃣ unmark topic
       await tx.topicCoverage.deleteMany({
         where: {
           topicId,
@@ -146,10 +172,10 @@ export async function DELETE(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: "Topic and subtopics unmarked successfully",
+      message: "Topic and all subtopics unmarked successfully",
     });
   } catch (error) {
-    console.error(error);
+    console.error("UNMARK TOPIC ERROR:", error);
     return NextResponse.json(
       { success: false, message: "Failed to unmark topic" },
       { status: 500 },

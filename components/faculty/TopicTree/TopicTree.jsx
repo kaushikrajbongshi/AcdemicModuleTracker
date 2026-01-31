@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
@@ -15,6 +16,14 @@ export default function MarkCourseTopic() {
     action: "", // "check" or "uncheck"
     affectedCount: 0,
   });
+
+  // Refresh button animation state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  //For now it will hardcode
+  const semesterId = "01"; // later from auth / context
+  const academic_YearId = 1; // later from active academic year
+  const faculty_Id = 3;
 
   /* ================= FETCH COURSES ================= */
   const fetchCourse = async () => {
@@ -35,16 +44,47 @@ export default function MarkCourseTopic() {
     );
     const fetchedTopic = await res.json();
 
+    const status = await fetchMarkedStatus(courseId);
+
     const topicTree = fetchedTopic.result.map((t) => ({
       id: t.topic_id,
       name: t.topic_name,
       topicId: t.topic_id,
       type: "topic",
       isOpen: false,
+      isChecked: status.markedTopics.includes(t.topic_id),
       children: null,
     }));
 
     setTree(topicTree);
+  };
+
+  // const fetchTopicsByCourse = async (courseId) => {
+  //   const res = await fetch(
+  //     `/api/admin/topic/fetchAllTopic?courseId=${courseId}`,
+  //     { cache: "no-store" },
+  //   );
+  //   const fetchedTopic = await res.json();
+
+  //   const topicTree = fetchedTopic.result.map((t) => ({
+  //     id: t.topic_id,
+  //     name: t.topic_name,
+  //     topicId: t.topic_id,
+  //     type: "topic",
+  //     isOpen: false,
+  //     children: null,
+  //   }));
+
+  //   setTree(topicTree);
+  // };
+
+  /* ================= Fetch marked topic and subtopic ================= */
+
+  const fetchMarkedStatus = async (courseId) => {
+    const res = await fetch(
+      `/api/faculty/progress/topic/status/?facultyId=${faculty_Id}&courseId=${courseId}&semesterId=${semesterId}&academicYearId=${academic_YearId}`,
+    );
+    return await res.json();
   };
 
   const handleCourseChange = async (e) => {
@@ -65,11 +105,14 @@ export default function MarkCourseTopic() {
       `/api/admin/subtopic/fetchAllsubTopic?topicId=${topicId}`,
     );
     const data = await res.json();
-    return buildSubTree(data.result);
+
+    const status = await fetchMarkedStatus(selectedCourse);
+
+    return buildSubTree(data.result, status.markedSubtopics);
   };
 
   /* ================= BUILD SUBTREE ================= */
-  const buildSubTree = (subtopics) => {
+  const buildSubTree = (subtopics, markedSubtopics = []) => {
     const map = {};
     const roots = [];
 
@@ -80,7 +123,7 @@ export default function MarkCourseTopic() {
         topicId: st.topicId,
         type: "subtopic",
         isOpen: false,
-        isChecked: false,
+        isChecked: markedSubtopics.includes(st.subtopic_id), // ✅ FIX
         children: [],
       };
     });
@@ -116,6 +159,40 @@ export default function MarkCourseTopic() {
     });
 
     return count;
+  };
+
+  //Check if all subtopics are checked
+
+  const areAllSubtopicsChecked = (node) => {
+    if (!node.children || node.children.length === 0) return true;
+
+    return node.children.every(
+      (child) => child.isChecked && areAllSubtopicsChecked(child),
+    );
+  };
+
+  const isAnySubtopicUnchecked = (node) => {
+    if (!node.children || node.children.length === 0) return false;
+
+    return node.children.some(
+      (child) => !child.isChecked || isAnySubtopicUnchecked(child),
+    );
+  };
+
+  const findParentTopic = (node, tree) => {
+    for (const t of tree) {
+      if (t.type === "topic") {
+        if (findNode(t, node.id)) return t;
+      }
+    }
+    return null;
+  };
+
+  const findNode = (current, targetId) => {
+    if (current.id === targetId) return true;
+    if (!current.children) return false;
+
+    return current.children.some((c) => findNode(c, targetId));
   };
 
   //Statistics
@@ -165,25 +242,90 @@ export default function MarkCourseTopic() {
     setShowConfirmation(true);
   };
 
+  //CheckBox handler for api call
+  const callMarkApi = async (node, action) => {
+    const isTopic = node.type === "topic";
+    const url = isTopic
+      ? `/api/faculty/progress/topic/${node.id}/mark`
+      : `/api/faculty/progress/subtopic/${node.id}/mark`;
+
+    const method = action === "check" ? "POST" : "DELETE";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseId: selectedCourse,
+        semesterId,
+        academic_YearId,
+        faculty_Id,
+      }),
+    });
+
+    const data = await res.json();
+    console.log(data);
+
+    if (!res.ok) {
+      throw new Error(data.message || "Action failed");
+    }
+  };
+
   /* ================= CONFIRM CHECKBOX CHANGE ================= */
-  const handleConfirmCheckbox = () => {
+  const handleConfirmCheckbox = async () => {
     const { node, action } = confirmationData;
     const newCheckedState = action === "check";
 
-    const updateNodeAndChildren = (targetNode) => {
-      targetNode.isChecked = newCheckedState;
-      if (targetNode.children) {
-        targetNode.children.forEach((child) => updateNodeAndChildren(child));
-      }
-    };
+    try {
+      setTreeLoading(true);
 
-    updateNodeAndChildren(node);
-    setTree([...tree]);
-    setShowConfirmation(false);
+      // 1️⃣ call backend for clicked node
+      await callMarkApi(node, action);
+
+      // 2️⃣ update clicked node + its children
+      const updateNodeAndChildren = (targetNode) => {
+        targetNode.isChecked = newCheckedState;
+        if (targetNode.children) {
+          targetNode.children.forEach(updateNodeAndChildren);
+        }
+      };
+      updateNodeAndChildren(node);
+
+      // 🔥 NEW PART STARTS HERE
+      if (node.type === "subtopic") {
+        const parentTopic = findParentTopic(node, tree);
+
+        if (parentTopic) {
+          // CASE A: all subtopics checked → auto mark topic
+          if (areAllSubtopicsChecked(parentTopic) && !parentTopic.isChecked) {
+            await callMarkApi(parentTopic, "check");
+            parentTopic.isChecked = true;
+          }
+
+          // CASE B REMOVED: Don't auto-uncheck parent to avoid affecting sibling subtopics
+          // The parent topic should only be automatically CHECKED when all subtopics are checked
+          // If user wants to uncheck the parent, they should do it manually
+        }
+      }
+      // 🔥 NEW PART ENDS HERE
+
+      setTree([...tree]);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setTreeLoading(false);
+      setShowConfirmation(false);
+    }
   };
 
   const handleCancelCheckbox = () => {
     setShowConfirmation(false);
+  };
+
+  /* ================= REFRESH HANDLER ================= */
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchTopicsByCourse(selectedCourse);
+    setTimeout(() => setIsRefreshing(false), 600); // Keep animation for 600ms
   };
 
   /* ================= TREE NODE ================= */
@@ -381,10 +523,35 @@ export default function MarkCourseTopic() {
 
           {/* Right Side - Tree Container */}
           <div className="flex flex-col" style={{ width: "85vw" }}>
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-800">
                 Topics & Subtopics
               </h2>
+              {selectedCourse && (
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="px-3 py-1 text-black rounded-lg hover:bg-gray-100 transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-transform duration-500"
+                    style={{
+                      transform: isRefreshing ? "rotate(360deg)" : "rotate(0deg)",
+                    }}
+                  >
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <div className="flex-1 overflow-auto p-6">
@@ -420,3 +587,5 @@ export default function MarkCourseTopic() {
     </>
   );
 }
+
+
