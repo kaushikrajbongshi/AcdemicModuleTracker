@@ -47,14 +47,14 @@ export default function AdminDashboardLayout({ children }) {
       href: "/dashboard/faculty/course-coverage",
     },
     {
+      title: "Course Progress",
+      icon: ChartSpline,
+      href: "/dashboard/faculty/course-progress",
+    },
+    {
       title: "Course",
       icon: BookOpen,
       children: [
-        {
-          name: "Course Progress",
-          href: "/dashboard/faculty/course-progress",
-          icon: ChartSpline,
-        },
         {
           name: "Assigned Course",
           href: "/dashboard/faculty/assigned-course",
@@ -248,7 +248,7 @@ export default function AdminDashboardLayout({ children }) {
                   // DROPDOWN MENU
                   const isOpen = openMenu === item.title;
                   const hasActiveChild = item.children?.some(
-                    (sub) => sub.href === pathname
+                    (sub) => sub.href === pathname,
                   );
 
                   return (
