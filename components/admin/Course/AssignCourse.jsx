@@ -14,7 +14,7 @@ export default function AssignCourse() {
   useEffect(() => {
     const fetchData = async () => {
       const courseRes = await fetch("/api/course");
-      const facultyRes = await fetch("/api/faculty");
+      const facultyRes = await fetch("/api/faculty/all-faculty");
 
       const course_result = await courseRes.json();
       const faculty_result = await facultyRes.json();
