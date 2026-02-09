@@ -26,14 +26,18 @@ import {
   ListTodo,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function AdminDashboardLayout({ children }) {
+  const pathname = usePathname();
   const router = useRouter();
-  const [pathname, setPathname] = useState("/dashboard/admin");
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
+
+  const role = "HOD";
 
   const menu = [
     {
@@ -42,14 +46,14 @@ export default function AdminDashboardLayout({ children }) {
       href: "/dashboard/faculty",
     },
     {
-      title: "Topic Coverage",
-      icon: ListTodo,
-      href: "/dashboard/faculty/course-coverage",
-    },
-    {
       title: "Course Progress",
       icon: ChartSpline,
       href: "/dashboard/faculty/course-progress",
+    },
+    {
+      title: "Topic Coverage",
+      icon: ListTodo,
+      href: "/dashboard/faculty/course-coverage",
     },
     {
       title: "Course",
@@ -67,11 +71,37 @@ export default function AdminDashboardLayout({ children }) {
       icon: FileText,
       href: "/dashboard/faculty/report",
     },
+
+    // =======================
+    // HOD SECTION
+    // =======================
+    {
+      type: "divider",
+      role: "HOD",
+      id: "hod-divider",
+    },
+    {
+      title: "HOD Overview",
+      icon: Users,
+      href: "/dashboard/faculty/hod/overview",
+      role: "HOD",
+    },
+    {
+      title: "Course Comparison",
+      icon: BookOpen,
+      href: "/dashboard/faculty/hod/course-comparison",
+      role: "HOD",
+    },
+    {
+      title: "Faculty Progress",
+      icon: UserCheck,
+      href: "/dashboard/faculty/hod/progress-faculty",
+      role: "HOD",
+    },
   ];
 
   const handleNavigation = (href) => {
     router.push(href);
-    setPathname(href);
     setMobileOpen(false);
   };
 
@@ -209,118 +239,132 @@ export default function AdminDashboardLayout({ children }) {
             {/* SIDEBAR MENU */}
             <nav className="flex-1 overflow-y-auto p-3">
               <div className="space-y-1">
-                {menu.map((item) => {
-                  const Icon = item.icon;
+                {menu
+                  .filter((item) => {
+                    // show item if:
+                    // 1. no role restriction
+                    // 2. role matches
+                    if (!item.role) return true;
+                    return item.role === role;
+                  })
+                  .map((item) => {
+                    if (item.type === "divider") {
+                      return (
+                        <hr key={item.id} className="my-4 border-gray-200" />
+                      );
+                    }
 
-                  // NORMAL LINK (NO CHILDREN)
-                  if (!item.children) {
-                    const active = pathname === item.href;
+                    const Icon = item.icon;
+
+                    // NORMAL LINK (NO CHILDREN)
+                    if (!item.children) {
+                      const active = pathname === item.href;
+
+                      return (
+                        <a
+                          key={item.title}
+                          href={item.href}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleNavigation(item.href);
+                          }}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
+                            active
+                              ? "bg-indigo-50 text-indigo-600 font-medium"
+                              : "text-gray-700 hover:bg-gray-50"
+                          } ${collapsed ? "justify-center" : ""}`}
+                          title={collapsed ? item.title : ""}
+                        >
+                          <Icon
+                            className={`w-5 h-5 flex-shrink-0 ${
+                              active
+                                ? "text-indigo-600"
+                                : "text-gray-500 group-hover:text-gray-700"
+                            }`}
+                          />
+                          {!collapsed && (
+                            <span className="text-sm">{item.title}</span>
+                          )}
+                        </a>
+                      );
+                    }
+
+                    // DROPDOWN MENU
+                    const isOpen = openMenu === item.title;
+                    const hasActiveChild = item.children?.some(
+                      (sub) => sub.href === pathname,
+                    );
 
                     return (
-                      <a
-                        key={item.title}
-                        href={item.href}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleNavigation(item.href);
-                        }}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                          active
-                            ? "bg-indigo-50 text-indigo-600 font-medium"
-                            : "text-gray-700 hover:bg-gray-50"
-                        } ${collapsed ? "justify-center" : ""}`}
-                        title={collapsed ? item.title : ""}
-                      >
-                        <Icon
-                          className={`w-5 h-5 flex-shrink-0 ${
-                            active
-                              ? "text-indigo-600"
-                              : "text-gray-500 group-hover:text-gray-700"
-                          }`}
-                        />
-                        {!collapsed && (
-                          <span className="text-sm">{item.title}</span>
-                        )}
-                      </a>
-                    );
-                  }
-
-                  // DROPDOWN MENU
-                  const isOpen = openMenu === item.title;
-                  const hasActiveChild = item.children?.some(
-                    (sub) => sub.href === pathname,
-                  );
-
-                  return (
-                    <div key={item.title}>
-                      <button
-                        onClick={() => toggleMenu(item.title)}
-                        className={`flex items-center gap-3 px-3 py-2.5 w-full rounded-lg transition-all group ${
-                          hasActiveChild
-                            ? "bg-indigo-50 text-indigo-600"
-                            : "text-gray-700 hover:bg-gray-50"
-                        } ${collapsed ? "justify-center" : ""}`}
-                        title={collapsed ? item.title : ""}
-                      >
-                        <Icon
-                          className={`w-5 h-5 flex-shrink-0 ${
+                      <div key={item.title}>
+                        <button
+                          onClick={() => toggleMenu(item.title)}
+                          className={`flex items-center gap-3 px-3 py-2.5 w-full rounded-lg transition-all group ${
                             hasActiveChild
-                              ? "text-indigo-600"
-                              : "text-gray-500 group-hover:text-gray-700"
-                          }`}
-                        />
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1 text-left text-sm">
-                              {item.title}
-                            </span>
-                            <ChevronDown
-                              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
-                                isOpen ? "rotate-180" : ""
-                              }`}
-                            />
-                          </>
-                        )}
-                      </button>
-
-                      {/* Submenu */}
-                      {!collapsed && (
-                        <div
-                          className={`transition-all duration-200 ease-in-out ${
-                            isOpen
-                              ? "max-h-96 opacity-100 mt-1"
-                              : "max-h-0 opacity-0"
-                          } overflow-hidden`}
+                              ? "bg-indigo-50 text-indigo-600"
+                              : "text-gray-700 hover:bg-gray-50"
+                          } ${collapsed ? "justify-center" : ""}`}
+                          title={collapsed ? item.title : ""}
                         >
-                          <div className="pl-11 pr-2 space-y-1">
-                            {item.children.map((sub) => {
-                              const active = pathname === sub.href;
-                              const SubIcon = sub.icon;
-                              return (
-                                <a
-                                  key={sub.name}
-                                  href={sub.href}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handleNavigation(sub.href);
-                                  }}
-                                  className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-                                    active
-                                      ? "bg-indigo-50 text-indigo-600 font-medium"
-                                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                  }`}
-                                >
-                                  {SubIcon && <SubIcon className="w-4 h-4" />}
-                                  {sub.name}
-                                </a>
-                              );
-                            })}
+                          <Icon
+                            className={`w-5 h-5 flex-shrink-0 ${
+                              hasActiveChild
+                                ? "text-indigo-600"
+                                : "text-gray-500 group-hover:text-gray-700"
+                            }`}
+                          />
+                          {!collapsed && (
+                            <>
+                              <span className="flex-1 text-left text-sm">
+                                {item.title}
+                              </span>
+                              <ChevronDown
+                                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                                  isOpen ? "rotate-180" : ""
+                                }`}
+                              />
+                            </>
+                          )}
+                        </button>
+
+                        {/* Submenu */}
+                        {!collapsed && (
+                          <div
+                            className={`transition-all duration-200 ease-in-out ${
+                              isOpen
+                                ? "max-h-96 opacity-100 mt-1"
+                                : "max-h-0 opacity-0"
+                            } overflow-hidden`}
+                          >
+                            <div className="pl-11 pr-2 space-y-1">
+                              {item.children.map((sub) => {
+                                const active = pathname === sub.href;
+                                const SubIcon = sub.icon;
+                                return (
+                                  <a
+                                    key={sub.name}
+                                    href={sub.href}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleNavigation(sub.href);
+                                    }}
+                                    className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
+                                      active
+                                        ? "bg-indigo-50 text-indigo-600 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    }`}
+                                  >
+                                    {SubIcon && <SubIcon className="w-4 h-4" />}
+                                    {sub.name}
+                                  </a>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </nav>
           </div>
