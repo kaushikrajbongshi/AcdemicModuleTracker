@@ -12,7 +12,7 @@ export async function POST(req) {
       return NextResponse.json(
         { success: false },
         { message: "All fields are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,17 +29,22 @@ export async function POST(req) {
       return NextResponse.json(
         { success: false },
         { message: "Invalid role" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    const user = await model.findUnique({ where: { email } });
+    const user = await model.findUnique({
+      where: { email },
+      include: {
+        facultyRole: true,
+      },
+    });
 
     if (!user) {
       return NextResponse.json(
         { success: false },
         { message: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -49,7 +54,7 @@ export async function POST(req) {
       return NextResponse.json(
         { success: false },
         { message: "Incorrect password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -57,8 +62,10 @@ export async function POST(req) {
     const token = generate_jsonwebtoken({
       id: user.id,
       role: role,
-      faculty_role: user.role,
+      faculty_role: user.facultyRole.description,
+      name: user.name,
     });
+
 
     // Set cookie - AWAIT cookies() first
     const cookieStore = await cookies();
@@ -73,14 +80,14 @@ export async function POST(req) {
     return NextResponse.json(
       { success: true, role },
       { message: "Login successful", token },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
       { success: false },
       { message: "Internal server error", error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -26,15 +26,17 @@ model Admin {
 // 2. Faculty_Role Model
 // =======================
 model Faculty_Role {
-  id          Int             @id
+  id          Int             @id @default(autoincrement())
   description FacultyRoleType
   faculties   Faculty[]
 
   @@map("faculty_role")
 }
 
+
+
 // =======================
-// 3. Faculty Model
+// 3. Faculty Model 
 // =======================
 model Faculty {
   id         Int      @id @default(autoincrement())
@@ -45,16 +47,19 @@ model Faculty {
   password   String   @db.VarChar(255)
   status     Status   @default(A)
   role       Int
+  dept_id    String   @db.VarChar(10) // This is the foreign key
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt @db.Timestamp(0)
 
-
+  // Relations - notice how we reference dept_id directly
   facultyRole       Faculty_Role       @relation(fields: [role], references: [id])
+  department        Department         @relation(fields: [dept_id], references: [dept_id]) // Use the existing dept_id field
   facultyCourses    FacultyCourse[]
   topicCoverages    TopicCoverage[]
   subTopicCoverages SubTopicCoverage[]
 
   @@index([role])
+  @@index([dept_id])
   @@map("faculty")
 }
 
@@ -62,19 +67,23 @@ model Faculty {
 // 4. Student Model
 // =======================
 model Student {
-  id             Int             @id @default(autoincrement())
-  studentID      String          @unique @default(cuid()) @db.VarChar(100)
-  email          String          @unique @db.VarChar(150)
-  name           String          @db.VarChar(100)
-  password       String          @db.VarChar(255)
-  status         Status          @default(A)
-  currentSem     String          @default("01") @db.VarChar(2)
-  academicYearId Int
-  created_at     DateTime        @default(now()) @db.Timestamp(0)
-  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamp(0)
-  semester       Semester        @relation(fields: [currentSem], references: [semester_id], onDelete: Restrict)
-  studentCourses StudentCourse[]
-  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id])
+  id         Int    @id @default(autoincrement())
+  studentID  String @unique @default(cuid()) @db.VarChar(100)
+  email      String @unique @db.VarChar(150)
+  name       String @db.VarChar(100)
+  password   String @db.VarChar(255)
+  status     Status @default(A)
+  currentSem String @default("01") @db.VarChar(2)
+
+  academicYearId Int // CURRENT academic year
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  semester             Semester              @relation(fields: [currentSem], references: [semester_id], onDelete: Restrict)
+  studentCourses       StudentCourse[]
+  studentAcademicYears StudentAcademicYear[] // HISTORY (source of truth)
+
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @updatedAt @db.Timestamp(0)
 
   @@index([currentSem])
   @@index([academicYearId])
@@ -102,7 +111,8 @@ model Department {
   dept_name String @db.VarChar(100)
 
   // Relation: Department has many courses
-  courses Course[]
+  courses   Course[]
+  faculties Faculty[]
 
   @@map("department")
 }
@@ -149,17 +159,20 @@ model Course {
 // Faculty-Course Mapping 
 // =======================
 model FacultyCourse {
-  id         Int      @id @default(autoincrement())
-  facultyId  Int
-  courseId   String
-  created_at DateTime @default(now()) @db.Timestamp(0)
+  id             Int      @id @default(autoincrement())
+  facultyId      Int
+  courseId       String
+  academicYearId Int // ✅ NEW
+  created_at     DateTime @default(now()) @db.Timestamp(0)
 
-  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
-  course  Course  @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
+  faculty      Faculty      @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  course       Course       @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade) // ✅ NEW
 
-  @@unique([facultyId, courseId])
+  @@unique([facultyId, courseId, academicYearId]) // ✅ UPDATED
   @@index([facultyId])
   @@index([courseId])
+  @@index([academicYearId]) // ✅ NEW
   @@map("faculty_course_mapping")
 }
 
@@ -204,12 +217,15 @@ model SubTopic {
 //batch
 //========================
 model AcademicYear {
-  id                Int                @id @default(autoincrement())
-  label             String             @unique // "2023-24", "2024-25"
-  isActive          Boolean            @default(false)
-  topicCoverages    TopicCoverage[]
-  subTopicCoverages SubTopicCoverage[]
-  students          Student[]
+  id       Int     @id @default(autoincrement())
+  label    String  @unique // "2023-2024"
+  isActive Boolean @default(false)
+
+  facultyCourses       FacultyCourse[]
+  topicCoverages       TopicCoverage[]
+  subTopicCoverages    SubTopicCoverage[]
+  students             Student[] // current students
+  studentAcademicYears StudentAcademicYear[] // history
 
   @@map("academic_year")
 }
@@ -280,4 +296,28 @@ model StudentCourse {
   @@index([studentId])
   @@index([courseId])
   @@map("student_course_mapping")
+}
+
+model StudentAcademicYear {
+  id             Int               @id @default(autoincrement())
+  studentId      Int
+  academicYearId Int
+  status         StudentYearStatus @default(REGULAR)
+  created_at     DateTime          @default(now()) @db.Timestamp(0)
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, academicYearId])
+  @@index([studentId])
+  @@index([academicYearId])
+  @@index([studentId, status]) // ✅ ADDED (IMPORTANT)
+  @@map("student_academic_year")
+}
+
+enum StudentYearStatus {
+  REGULAR
+  BACKLOG
+  REPEAT
+  PASSED
 }

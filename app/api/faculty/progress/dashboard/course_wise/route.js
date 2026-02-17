@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/utils/auth";
+import { cookies } from "next/headers";
 
 export async function GET() {
   try {
-    const facultyId = 3; // TODO: replace with auth later
+    const cookieStore = await cookies();
+    const token = cookieStore.get("LOGIN_INFO")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = verifyToken(token);
+    const facultyId = decoded.id;
 
     // 1️⃣ Active academic year
     const academicYear = await prisma.academicYear.findFirst({
@@ -22,7 +35,10 @@ export async function GET() {
 
     // 2️⃣ Faculty courses
     const facultyCourses = await prisma.facultyCourse.findMany({
-      where: { facultyId },
+      where: {
+        facultyId,
+        academicYearId,
+      },
       include: {
         course: {
           select: {

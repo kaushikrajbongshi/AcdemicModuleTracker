@@ -22,12 +22,11 @@ export default function MarkCourseTopic() {
 
   //For now it will hardcode
   const semesterId = "01"; // later from auth / context
-  const academic_YearId = 1; // later from active academic year
   const faculty_Id = 3;
 
   /* ================= FETCH COURSES ================= */
   const fetchCourse = async () => {
-    const res = await fetch("/api/course");
+    const res = await fetch("/api/faculty/assigned-courses");
     const fetch_course = await res.json();
     setcourses(fetch_course.result);
   };
@@ -59,30 +58,11 @@ export default function MarkCourseTopic() {
     setTree(topicTree);
   };
 
-  // const fetchTopicsByCourse = async (courseId) => {
-  //   const res = await fetch(
-  //     `/api/admin/topic/fetchAllTopic?courseId=${courseId}`,
-  //     { cache: "no-store" },
-  //   );
-  //   const fetchedTopic = await res.json();
-
-  //   const topicTree = fetchedTopic.result.map((t) => ({
-  //     id: t.topic_id,
-  //     name: t.topic_name,
-  //     topicId: t.topic_id,
-  //     type: "topic",
-  //     isOpen: false,
-  //     children: null,
-  //   }));
-
-  //   setTree(topicTree);
-  // };
-
   /* ================= Fetch marked topic and subtopic ================= */
 
   const fetchMarkedStatus = async (courseId) => {
     const res = await fetch(
-      `/api/faculty/progress/topic/status/?facultyId=${faculty_Id}&courseId=${courseId}&semesterId=${semesterId}&academicYearId=${academic_YearId}`,
+      `/api/faculty/progress/topic/status/?facultyId=${faculty_Id}&courseId=${courseId}&semesterId=${semesterId}`,
     );
     return await res.json();
   };

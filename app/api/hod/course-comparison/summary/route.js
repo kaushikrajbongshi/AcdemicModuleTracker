@@ -5,6 +5,25 @@ export async function GET() {
   try {
     // 🔐 TEMP: replace with HOD session later
     const hodDepartmentId = "CSE";
+    
+    const cookieStore = await cookies();
+    const token = cookieStore.get("LOGIN_INFO")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = verifyToken(token);
+
+    if (decoded.faculty_role !== "HOD") {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized Only for HOD" },
+        { status: 401 },
+      );
+    }
 
     // 1️⃣ Active academic year
     const academicYear = await prisma.academicYear.findFirst({
@@ -12,6 +31,7 @@ export async function GET() {
       select: { id: true },
     });
 
+    
     if (!academicYear) {
       return NextResponse.json(
         { message: "Active academic year not found" },

@@ -24,6 +24,7 @@ import {
   ClipboardList,
   ChartSpline,
   ListTodo,
+  Calendar1,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ import { usePathname } from "next/navigation";
 export default function AdminDashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [activeYear, setActiveYear] = useState(null);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -127,6 +129,18 @@ export default function AdminDashboardLayout({ children }) {
     }
   };
 
+  useEffect(() => {
+    const fetchActiveYear = async () => {
+      const res = await fetch("/api/common/active-academic-year");
+      const data = await res.json();
+
+      if (data.success) {
+        setActiveYear(data.year);
+      }
+    };
+
+    fetchActiveYear();
+  }, []);
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50">
       {/* TOP NAVBAR */}
@@ -140,7 +154,15 @@ export default function AdminDashboardLayout({ children }) {
           </span>
         </div>
 
-        <div className="relative">
+        <div className="relative flex">
+          {activeYear && (
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg mr-4">
+              <Calendar1 className="w-4 h-4 text-green-600" />
+              <span className="text-xs font-medium text-green-800">
+                {activeYear.label}
+              </span>
+            </div>
+          )}
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"

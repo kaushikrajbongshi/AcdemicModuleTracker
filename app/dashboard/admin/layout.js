@@ -29,13 +29,17 @@ import {
   Link2,
   BookOpenCheck,
   List,
-  
+  Calendar1,
+  CalendarCheck2,
+  Warehouse,
+  HousePlus,
+  House,
 } from "lucide-react";
 
 export default function AdminDashboardLayout({ children }) {
   const router = useRouter();
+  const [activeYear, setActiveYear] = useState(null);
   const [pathname, setPathname] = useState("/dashboard/admin");
-
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -46,6 +50,28 @@ export default function AdminDashboardLayout({ children }) {
       title: "Dashboard",
       icon: LayoutDashboard,
       href: "/dashboard/admin",
+    },
+
+    {
+      title: "Academic Year",
+      icon: CalendarCheck2,
+      href: "/dashboard/admin/academic-year",
+    },
+    {
+      title: "Deparment",
+      icon: Warehouse,
+      children: [
+        {
+          name: "Add Department",
+          href: "/dashboard/admin/department/add",
+          icon: HousePlus,
+        },
+        {
+          name: "All Department",
+          href: "/dashboard/admin/department/allDepartment",
+          icon: House,
+        },
+      ],
     },
     {
       title: "Course",
@@ -154,6 +180,19 @@ export default function AdminDashboardLayout({ children }) {
       router.push("/login/admin");
     }
   };
+
+  useEffect(() => {
+    const fetchActiveYear = async () => {
+      const res = await fetch("/api/common/active-academic-year");
+      const data = await res.json();
+
+      if (data.success) {
+        setActiveYear(data.year);
+      }
+    };
+
+    fetchActiveYear();
+  }, []);
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50">
       {/* TOP NAVBAR */}
@@ -167,7 +206,15 @@ export default function AdminDashboardLayout({ children }) {
           </span>
         </div>
 
-        <div className="relative">
+        <div className="relative flex">
+          {activeYear && (
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg mr-4">
+              <Calendar1 className="w-4 h-4 text-green-600" />
+              <span className="text-xs font-medium text-green-800">
+                {activeYear.label}
+              </span>
+            </div>
+          )}
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -305,7 +352,7 @@ export default function AdminDashboardLayout({ children }) {
                   // DROPDOWN MENU
                   const isOpen = openMenu === item.title;
                   const hasActiveChild = item.children?.some(
-                    (sub) => sub.href === pathname
+                    (sub) => sub.href === pathname,
                   );
 
                   return (

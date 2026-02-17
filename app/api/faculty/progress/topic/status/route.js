@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/utils/auth";
 
 export async function GET(req) {
   try {
@@ -7,13 +9,38 @@ export async function GET(req) {
 
     const courseId = searchParams.get("courseId");
     const semesterId = searchParams.get("semesterId");
-    const academicYearId = Number(searchParams.get("academicYearId"));
-    const facultyId = Number(searchParams.get("facultyId"));
+    const cookieStore = await cookies();
+
+    const token = cookieStore.get("LOGIN_INFO")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = verifyToken(token);
+    const facultyId = decoded.id;
+
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+
+    if (!activeYear) {
+      return NextResponse.json(
+        { success: true, markedTopics: [], markedSubtopics: [] },
+        { status: 200 },
+      );
+    }
+
+    const academicYearId = activeYear.id;
 
     if (!courseId || !semesterId || !academicYearId || !facultyId) {
       return NextResponse.json(
         { success: true, markedTopics: [], markedSubtopics: [] },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -41,8 +68,8 @@ export async function GET(req) {
 
     return NextResponse.json({
       success: true,
-      markedTopics: topics.map(t => t.topicId),
-      markedSubtopics: subtopics.map(s => s.subtopicId),
+      markedTopics: topics.map((t) => t.topicId),
+      markedSubtopics: subtopics.map((s) => s.subtopicId),
     });
   } catch (error) {
     console.error("Status fetch failed:", error);
@@ -50,7 +77,7 @@ export async function GET(req) {
     // ⚠️ STILL DO NOT BREAK FRONTEND
     return NextResponse.json(
       { success: true, markedTopics: [], markedSubtopics: [] },
-      { status: 200 }
+      { status: 200 },
     );
   }
 }

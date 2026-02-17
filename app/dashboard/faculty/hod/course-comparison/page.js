@@ -118,42 +118,85 @@ export default function CourseComparisonDashboard() {
     );
   };
 
-  useEffect(() => {
-    const fetchCourseComparison = async () => {
-      try {
-        const res = await fetch("/api/hod/course-comparison/summary");
-        const data = await res.json();
+  const fetchCourseComparison = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/hod/course-comparison/summary");
+      const data = await res.json();
 
-        // courses dropdown
-        setCourses(
-          data.courses.map((c) => ({
-            id: c.courseId,
-            name: c.courseName,
-          })),
-        );
+      // courses dropdown
+      setCourses(
+        data.courses.map((c) => ({
+          id: c.courseId,
+          name: c.courseName,
+        })),
+      );
 
-        // auto-select first course
-        if (data.courses.length > 0) {
-          setSelectedCourse(data.courses[0].courseId);
-        }
-
-        // summary cards
-        setSummaryMetrics({
-          totalFaculties: data.courses.reduce(
-            (sum, c) => sum + c.facultyCount,
-            0,
-          ),
-          averageProgress: data.summary.averageProgress,
-          onTrack: data.summary.onTrack,
-          lagging: data.summary.lagging,
-        });
-      } catch (err) {
-        console.error("Failed to load course comparison", err);
-      } finally {
-        setLoading(false);
+      // auto-select first course
+      if (data.courses.length > 0) {
+        setSelectedCourse(data.courses[0].courseId);
       }
-    };
 
+      // summary cards
+      setSummaryMetrics({
+        totalFaculties: data.courses.reduce(
+          (sum, c) => sum + c.facultyCount,
+          0,
+        ),
+        averageProgress: data.summary.averageProgress,
+        onTrack: data.summary.onTrack,
+        lagging: data.summary.lagging,
+      });
+    } catch (err) {
+      console.error("Failed to load course comparison", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReload = () => {
+    fetchCourseComparison();
+  };
+
+  const generateExcelReport = () => {
+    // Create CSV content
+    const selectedCourseName = courses.find(c => c.id === selectedCourse)?.name || 'Course';
+    
+    let csvContent = `Course Comparison Report - ${selectedCourseName}\n\n`;
+    
+    // Summary Metrics
+    csvContent += "Summary Metrics\n";
+    csvContent += `Total Faculties,${summaryMetrics?.totalFaculties || 0}\n`;
+    csvContent += `Average Progress,${summaryMetrics?.averageProgress || 0}%\n`;
+    csvContent += `On Track,${summaryMetrics?.onTrack || 0}\n`;
+    csvContent += `Lagging,${summaryMetrics?.lagging || 0}\n\n`;
+    
+    // Faculty Details
+    csvContent += "Faculty Progress Comparison\n";
+    csvContent += "Faculty Name,Department,Completed Topics,Total Topics,Progress (%),Status,Trend,Last Updated\n";
+    
+    comparisonData.forEach(faculty => {
+      const statusLabel = faculty.status === "on-track" ? "On Track" : faculty.status === "moderate" ? "Moderate" : "Lagging";
+      const trendLabel = faculty.trend === "up" ? "Up" : faculty.trend === "down" ? "Down" : "Stable";
+      
+      csvContent += `"${faculty.facultyName}","${faculty.department}",${faculty.completedTopics},${faculty.totalTopics},${faculty.progress},"${statusLabel}","${trendLabel}","${faculty.lastUpdated}"\n`;
+    });
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Course_Comparison_Report_${selectedCourseName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  useEffect(() => {
     fetchCourseComparison();
   }, []);
 
@@ -259,34 +302,47 @@ export default function CourseComparisonDashboard() {
               </div>
             </div>
 
-            {/* Academic Year Dropdown */}
-            {/* <div className="flex flex-col">
-              <label className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
-                Academic Year
-              </label>
-              <div className="relative">
-                <select className="appearance-none px-4 py-2.5 pr-10 border border-gray-300 rounded-xl text-sm font-medium text-gray-900 bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[150px] shadow-sm transition-all">
-                  {academicYears.map((year) => (
-                    <option key={year.id} value={year.id}>
-                      {year.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div> */}
+            {/* Reload Button */}
+            <button
+              onClick={handleReload}
+              className="p-2.5 border border-gray-300 rounded-xl bg-white hover:bg-gray-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+              title="Reload Data"
+            >
+              <svg
+                className="w-5 h-5 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+
+            {/* Generate Report Button */}
+            <button
+              onClick={generateExcelReport}
+              className="p-2.5 border border-gray-300 rounded-xl bg-white hover:bg-blue-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+              title="Generate Excel Report"
+            >
+              <svg
+                className="w-5 h-5 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 

@@ -15,7 +15,7 @@ CREATE TABLE `admin` (
 
 -- CreateTable
 CREATE TABLE `faculty_role` (
-    `id` INTEGER NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `description` ENUM('HOD', 'TEACHER') NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -32,7 +32,7 @@ CREATE TABLE `faculty` (
     `status` ENUM('A', 'D') NOT NULL DEFAULT 'A',
     `role` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updated_at` DATETIME(3) NOT NULL,
+    `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     UNIQUE INDEX `faculty_faculty_id_key`(`faculty_id`),
     UNIQUE INDEX `faculty_email_key`(`email`),
@@ -51,7 +51,7 @@ CREATE TABLE `student` (
     `currentSem` VARCHAR(2) NOT NULL DEFAULT '01',
     `academicYearId` INTEGER NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `updated_at` TIMESTAMP(0) NOT NULL,
 
     UNIQUE INDEX `student_studentID_key`(`studentID`),
     UNIQUE INDEX `student_email_key`(`email`),
@@ -93,11 +93,13 @@ CREATE TABLE `faculty_course_mapping` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `facultyId` INTEGER NOT NULL,
     `courseId` VARCHAR(191) NOT NULL,
+    `academicYearId` INTEGER NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `faculty_course_mapping_facultyId_idx`(`facultyId`),
     INDEX `faculty_course_mapping_courseId_idx`(`courseId`),
-    UNIQUE INDEX `faculty_course_mapping_facultyId_courseId_key`(`facultyId`, `courseId`),
+    INDEX `faculty_course_mapping_academicYearId_idx`(`academicYearId`),
+    UNIQUE INDEX `faculty_course_mapping_facultyId_courseId_academicYearId_key`(`facultyId`, `courseId`, `academicYearId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -182,14 +184,29 @@ CREATE TABLE `student_course_mapping` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `student_academic_year` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `studentId` INTEGER NOT NULL,
+    `academicYearId` INTEGER NOT NULL,
+    `status` ENUM('REGULAR', 'BACKLOG', 'REPEAT', 'PASSED') NOT NULL DEFAULT 'REGULAR',
+    `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+
+    INDEX `student_academic_year_studentId_idx`(`studentId`),
+    INDEX `student_academic_year_academicYearId_idx`(`academicYearId`),
+    INDEX `student_academic_year_studentId_status_idx`(`studentId`, `status`),
+    UNIQUE INDEX `student_academic_year_studentId_academicYearId_key`(`studentId`, `academicYearId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `faculty` ADD CONSTRAINT `faculty_role_fkey` FOREIGN KEY (`role`) REFERENCES `faculty_role`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `student` ADD CONSTRAINT `student_currentSem_fkey` FOREIGN KEY (`currentSem`) REFERENCES `semester`(`semester_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `student` ADD CONSTRAINT `student_academicYearId_fkey` FOREIGN KEY (`academicYearId`) REFERENCES `academic_year`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `student` ADD CONSTRAINT `student_academicYearId_fkey` FOREIGN KEY (`academicYearId`) REFERENCES `academic_year`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `student` ADD CONSTRAINT `student_currentSem_fkey` FOREIGN KEY (`currentSem`) REFERENCES `semester`(`semester_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `course` ADD CONSTRAINT `course_dept_id_fkey` FOREIGN KEY (`dept_id`) REFERENCES `department`(`dept_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -202,6 +219,9 @@ ALTER TABLE `faculty_course_mapping` ADD CONSTRAINT `faculty_course_mapping_facu
 
 -- AddForeignKey
 ALTER TABLE `faculty_course_mapping` ADD CONSTRAINT `faculty_course_mapping_courseId_fkey` FOREIGN KEY (`courseId`) REFERENCES `course`(`course_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `faculty_course_mapping` ADD CONSTRAINT `faculty_course_mapping_academicYearId_fkey` FOREIGN KEY (`academicYearId`) REFERENCES `academic_year`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `topic` ADD CONSTRAINT `topic_courseId_fkey` FOREIGN KEY (`courseId`) REFERENCES `course`(`course_id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -247,3 +267,9 @@ ALTER TABLE `student_course_mapping` ADD CONSTRAINT `student_course_mapping_stud
 
 -- AddForeignKey
 ALTER TABLE `student_course_mapping` ADD CONSTRAINT `student_course_mapping_courseId_fkey` FOREIGN KEY (`courseId`) REFERENCES `course`(`course_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_academic_year` ADD CONSTRAINT `student_academic_year_studentId_fkey` FOREIGN KEY (`studentId`) REFERENCES `student`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `student_academic_year` ADD CONSTRAINT `student_academic_year_academicYearId_fkey` FOREIGN KEY (`academicYearId`) REFERENCES `academic_year`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

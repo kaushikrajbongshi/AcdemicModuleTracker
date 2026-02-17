@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/utils/auth";
 
 export async function GET() {
   try {
-    const facultyId = 3;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("LOGIN_INFO")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = verifyToken(token);
+    const facultyId = decoded.id;
 
     // 1️⃣ Active academic year
     const academicYear = await prisma.academicYear.findFirst({
@@ -66,36 +79,36 @@ export async function GET() {
 
     const completedTopicsRaw = await prisma.$queryRawUnsafe(
       `
-  SELECT DISTINCT t.topic_id
-  FROM topic t
-  WHERE t.courseId IN (${placeholders})
-    AND (
-      -- Option 1: Topic is directly marked as covered
-      EXISTS (
-        SELECT 1 
-        FROM topic_coverage tc
-        WHERE tc.topicId = t.topic_id
-          AND tc.facultyId = ?
-          AND tc.academicYearId = ?
-      )
-      OR
-      -- Option 2: All subtopics are covered
-      (
-        EXISTS (SELECT 1 FROM subtopic st WHERE st.topicId = t.topic_id)
-        AND NOT EXISTS (
-          SELECT 1
-          FROM subtopic st2
-          WHERE st2.topicId = t.topic_id
-            AND NOT EXISTS (
-              SELECT 1
-              FROM subtopic_coverage sc
-              WHERE sc.subtopicId = st2.subtopic_id
-                AND sc.facultyId = ?
-                AND sc.academicYearId = ?
+        SELECT DISTINCT t.topic_id
+        FROM topic t
+        WHERE t.courseId IN (${placeholders})
+          AND (
+            -- Option 1: Topic is directly marked as covered
+            EXISTS (
+              SELECT 1 
+              FROM topic_coverage tc
+              WHERE tc.topicId = t.topic_id
+                AND tc.facultyId = ?
+                AND tc.academicYearId = ?
             )
-        )
-      )
-    )
+            OR
+            -- Option 2: All subtopics are covered
+            (
+              EXISTS (SELECT 1 FROM subtopic st WHERE st.topicId = t.topic_id)
+              AND NOT EXISTS (
+                SELECT 1
+                FROM subtopic st2
+                WHERE st2.topicId = t.topic_id
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM subtopic_coverage sc
+                    WHERE sc.subtopicId = st2.subtopic_id
+                      AND sc.facultyId = ?
+                      AND sc.academicYearId = ?
+                  )
+              )
+            )
+          )
   `,
       ...courseIds,
       facultyId,
@@ -107,13 +120,11 @@ export async function GET() {
     const completedTopics = completedTopicsRaw.length;
     const pendingTopics = totalTopics - completedTopics;
 
-    // 7️⃣ Overall progress (FIXED - based on topics, not subtopics)
+    // 7️⃣ Overall progress
     const overallProgress =
-      totalTopics === 0
-        ? 0
-        : Math.round((completedTopics / totalTopics) * 100);
+      totalTopics === 0 ? 0 : Math.round((completedTopics / totalTopics) * 100);
 
-    // 8️⃣ Last updated (FIXED - check both topic and subtopic coverage)
+    // 8️⃣ Last updated
     const [lastTopicCoverage, lastSubtopicCoverage] = await Promise.all([
       prisma.topicCoverage.findFirst({
         where: {
@@ -136,12 +147,10 @@ export async function GET() {
     ]);
 
     // Get the most recent between topic and subtopic coverage
-    const lastUpdated = [
-      lastTopicCoverage?.createdAt,
-      lastSubtopicCoverage?.createdAt,
-    ]
-      .filter(Boolean)
-      .sort((a, b) => new Date(b) - new Date(a))[0] || null;
+    const lastUpdated =
+      [lastTopicCoverage?.createdAt, lastSubtopicCoverage?.createdAt]
+        .filter(Boolean)
+        .sort((a, b) => new Date(b) - new Date(a))[0] || null;
 
     return NextResponse.json({
       overallProgress,

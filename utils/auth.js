@@ -23,7 +23,7 @@ export const generate_jsonwebtoken = (payload) => {
 //verify and decode jwt
 export const verifyToken = (token) => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, SECRET);
   } catch (err) {
     throw new Error("Invalid or expired token");
   }
