@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useRef, useState } from "react";
 
 export default function CourseTable() {
@@ -14,7 +13,7 @@ export default function CourseTable() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch("/api/course");
+        const res = await fetch("/api/admin/department/getAll");
         const json = await res.json();
         setCourses(json.result || []);
       } catch (err) {
@@ -23,7 +22,6 @@ export default function CourseTable() {
         setLoading(false);
       }
     };
-
     fetchCourses();
   }, []);
 
@@ -49,25 +47,11 @@ export default function CourseTable() {
       if (!mounted) return;
 
       dataTableRef.current = $(tableRef.current).DataTable({
-        data: courses,
+        data: courses, // ✅ Fixed: was "departments"
         columns: [
-          { data: "course_id", title: "Course ID" },
-          { data: "course_name", title: "Course Name" },
-          { data: "dept_id", title: "Department" },
-          { data: "semester_id", title: "Semester" },
-          {
-            data: null,
-            title: "Actions",
-            orderable: false,
-            render: (_, __, row) => `
-              <button class="edit-btn" data-id="${row.course_id}">
-                Edit
-              </button>
-              <button class="delete-btn" data-id="${row.course_id}">
-                Delete
-              </button>
-            `,
-          },
+          { data: "dept_id", title: "Department ID" },
+          { data: "dept_name", title: "Department Name" },
+          // ✅ Action column removed
         ],
         pageLength: 5,
         lengthMenu: [
@@ -78,19 +62,6 @@ export default function CourseTable() {
         ordering: true,
         paging: true,
         destroy: true,
-      });
-
-      // Action handlers
-      $(tableRef.current).on("click", ".edit-btn", function () {
-        const id = $(this).data("id");
-        alert("Edit course: " + id);
-      });
-
-      $(tableRef.current).on("click", ".delete-btn", function () {
-        const id = $(this).data("id");
-        if (confirm(`Delete course ${id}?`)) {
-          alert("Deleted " + id);
-        }
       });
     };
 
@@ -107,9 +78,9 @@ export default function CourseTable() {
   // -----------------------------
   return (
     <div className="p-6 text-black">
-      <h2 className="text-2xl mb-4">All Courses</h2>
+      <h2 className="text-2xl mb-4">All Department</h2>
 
-      {loading && <p>Loading courses...</p>}
+      {loading && <p>Loading departments...</p>}
 
       <table
         ref={tableRef}
@@ -118,35 +89,17 @@ export default function CourseTable() {
       >
         <thead>
           <tr>
-            <th>Course ID</th>
-            <th>Course Name</th>
-            <th>Department</th>
-            <th>Semester</th>
-            <th>Actions</th>
+            <th>Department ID</th>
+            <th>Department Name</th>
+          
           </tr>
         </thead>
       </table>
 
-      {/* Minimal styling */}
       <style jsx global>{`
         table.dataTable thead th {
           background: #e5e7eb;
           color: #000;
-        }
-        .edit-btn,
-        .delete-btn {
-          padding: 4px 10px;
-          margin-right: 6px;
-          border-radius: 4px;
-          border: none;
-          cursor: pointer;
-          color: white;
-        }
-        .edit-btn {
-          background: #2563eb;
-        }
-        .delete-btn {
-          background: #dc2626;
         }
       `}</style>
     </div>
