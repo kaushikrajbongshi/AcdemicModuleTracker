@@ -16,6 +16,7 @@ export async function GET() {
     }
 
     const decoded = verifyToken(token);
+    const facultyId = decoded.id;
 
     if (decoded.faculty_role !== "HOD") {
       return NextResponse.json(
@@ -24,19 +25,21 @@ export async function GET() {
       );
     }
 
-    const faculty = await prisma.faculty.findUnique({
-      where: { id: decoded.id },
-      select: { dept_id: true },
+    // Find HOD
+    const hod = await prisma.faculty.findUnique({
+      where: { id: facultyId },
+      select: {
+        dept_id: true,
+        department: { select: { dept_name: true } },
+      },
     });
 
-    if (!faculty) {
-      return NextResponse.json(
-        { success: false, message: "Faculty not found" },
-        { status: 404 },
-      );
+    if (!hod) {
+      return NextResponse.json({ message: "HOD not found" }, { status: 404 });
     }
 
-    const hodDepartmentId = faculty.dept_id;
+    const hodDepartmentId = hod.dept_id;
+    const hodDepartmentName = hod.department.dept_name;
 
     // 1️⃣ Active academic year
     const academicYear = await prisma.academicYear.findFirst({
@@ -53,7 +56,7 @@ export async function GET() {
 
     const academicYearId = academicYear.id;
 
-    // 2️⃣ Courses under HOD department
+    // ✅ Only courses belonging to HOD's department
     const courses = await prisma.course.findMany({
       where: { dept_id: hodDepartmentId },
       select: {
@@ -61,6 +64,7 @@ export async function GET() {
         course_name: true,
         semester_id: true,
         facultyCourses: {
+          where: { academicYearId }, // ✅ current year only
           select: { facultyId: true },
         },
       },
@@ -69,14 +73,10 @@ export async function GET() {
     let results = [];
 
     for (const course of courses) {
-      // 3️⃣ Total subtopics in course
       const totalSubtopics = await prisma.subTopic.count({
-        where: {
-          topic: { courseId: course.course_id },
-        },
+        where: { topic: { courseId: course.course_id } },
       });
 
-      // 4️⃣ Completed subtopics (any faculty)
       const completedSubtopics = await prisma.subTopicCoverage.count({
         where: {
           academicYearId,
@@ -89,17 +89,12 @@ export async function GET() {
           ? 0
           : Math.round((completedSubtopics / totalSubtopics) * 100);
 
-      // 5️⃣ Last activity
       const lastActivity = await prisma.subTopicCoverage.findFirst({
-        where: {
-          academicYearId,
-          courseId: course.course_id,
-        },
+        where: { academicYearId, courseId: course.course_id },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       });
 
-      // 6️⃣ Status
       let status = "LAGGING";
       if (progress >= 70) status = "ON_TRACK";
       else if (progress >= 40) status = "MODERATE";
@@ -108,34 +103,25 @@ export async function GET() {
         courseId: course.course_id,
         courseName: course.course_name,
         semester: course.semester_id,
-        facultyCount: course.facultyCourses.length,
+        facultyCount: course.facultyCourses.length, // ✅ current year count
         progress,
         status,
         lastUpdated: lastActivity?.createdAt ?? null,
       });
     }
 
-    // 7️⃣ Summary
     const totalCourses = results.length;
-
     const averageProgress =
       totalCourses === 0
         ? 0
         : Math.round(
             results.reduce((sum, c) => sum + c.progress, 0) / totalCourses,
           );
-
     const onTrack = results.filter((c) => c.status === "ON_TRACK").length;
-
     const lagging = results.filter((c) => c.status === "LAGGING").length;
 
     return NextResponse.json({
-      summary: {
-        totalCourses,
-        averageProgress,
-        onTrack,
-        lagging,
-      },
+      summary: { totalCourses, averageProgress, onTrack, lagging },
       courses: results,
     });
   } catch (error) {

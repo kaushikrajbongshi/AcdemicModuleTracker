@@ -160,37 +160,52 @@ export default function CourseComparisonDashboard() {
 
   const generateExcelReport = () => {
     // Create CSV content
-    const selectedCourseName = courses.find(c => c.id === selectedCourse)?.name || 'Course';
-    
+    const selectedCourseName =
+      courses.find((c) => c.id === selectedCourse)?.name || "Course";
+
     let csvContent = `Course Comparison Report - ${selectedCourseName}\n\n`;
-    
+
     // Summary Metrics
     csvContent += "Summary Metrics\n";
     csvContent += `Total Faculties,${summaryMetrics?.totalFaculties || 0}\n`;
     csvContent += `Average Progress,${summaryMetrics?.averageProgress || 0}%\n`;
     csvContent += `On Track,${summaryMetrics?.onTrack || 0}\n`;
     csvContent += `Lagging,${summaryMetrics?.lagging || 0}\n\n`;
-    
+
     // Faculty Details
     csvContent += "Faculty Progress Comparison\n";
-    csvContent += "Faculty Name,Department,Completed Topics,Total Topics,Progress (%),Status,Trend,Last Updated\n";
-    
-    comparisonData.forEach(faculty => {
-      const statusLabel = faculty.status === "on-track" ? "On Track" : faculty.status === "moderate" ? "Moderate" : "Lagging";
-      const trendLabel = faculty.trend === "up" ? "Up" : faculty.trend === "down" ? "Down" : "Stable";
-      
+    csvContent +=
+      "Faculty Name,Department,Completed Topics,Total Topics,Progress (%),Status,Trend,Last Updated\n";
+
+    comparisonData.forEach((faculty) => {
+      const statusLabel =
+        faculty.status === "on-track"
+          ? "On Track"
+          : faculty.status === "moderate"
+            ? "Moderate"
+            : "Lagging";
+      const trendLabel =
+        faculty.trend === "up"
+          ? "Up"
+          : faculty.trend === "down"
+            ? "Down"
+            : "Stable";
+
       csvContent += `"${faculty.facultyName}","${faculty.department}",${faculty.completedTopics},${faculty.totalTopics},${faculty.progress},"${statusLabel}","${trendLabel}","${faculty.lastUpdated}"\n`;
     });
-    
+
     // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute("href", url);
-    link.setAttribute("download", `Course_Comparison_Report_${selectedCourseName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    
+    link.setAttribute(
+      "download",
+      `Course_Comparison_Report_${selectedCourseName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -218,7 +233,7 @@ export default function CourseComparisonDashboard() {
           return {
             id: f.facultyId,
             facultyName: f.facultyName,
-            department: "Computer Science",
+            department: f.department ?? "—",
             completedTopics: Number(f.topicsCovered.split("/")[0]),
             totalTopics: Number(f.topicsCovered.split("/")[1]),
             progress: f.progress,

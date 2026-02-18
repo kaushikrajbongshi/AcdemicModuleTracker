@@ -12,19 +12,13 @@ export async function GET(req) {
     const token = cookieStore.get("LOGIN_INFO")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
 
     if (decoded.faculty_role !== "HOD") {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized Only for HOD" },
-        { status: 401 },
-      );
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     if (!courseId) {
@@ -34,7 +28,29 @@ export async function GET(req) {
       );
     }
 
-    // 1️⃣ Active academic year
+    // ✅ Get HOD's dept_id from DB using id from token
+    const hod = await prisma.faculty.findUnique({
+      where: { id: decoded.id },
+      select: { dept_id: true },
+    });
+
+    if (!hod) {
+      return NextResponse.json({ message: "HOD not found" }, { status: 404 });
+    }
+
+    const hodDepartmentId = hod.dept_id;
+
+    // ✅ Verify the requested courseId belongs to HOD's department
+    const course = await prisma.course.findUnique({
+      where: { course_id: courseId },
+      select: { dept_id: true },
+    });
+
+    if (!course || course.dept_id !== hodDepartmentId) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    // Active academic year
     const academicYear = await prisma.academicYear.findFirst({
       where: { isActive: true },
       select: { id: true },
@@ -49,36 +65,31 @@ export async function GET(req) {
 
     const academicYearId = academicYear.id;
 
-    // 2️⃣ Total subtopics in course
     const totalSubtopics = await prisma.subTopic.count({
-      where: {
-        topic: { courseId },
-      },
+      where: { topic: { courseId } },
     });
 
-    // 3️⃣ Faculties teaching this course
+    // ✅ Only faculties in HOD's dept assigned to this course in the active year
     const faculties = await prisma.faculty.findMany({
       where: {
+        dept_id: hodDepartmentId,
+        status: "A",
         facultyCourses: {
-          some: { courseId },
+          some: { courseId, academicYearId },
         },
       },
       select: {
         id: true,
         name: true,
+        department: { select: { dept_name: true } },
       },
     });
 
     let results = [];
 
     for (const faculty of faculties) {
-      // 4️⃣ Covered subtopics
       const completedSubtopics = await prisma.subTopicCoverage.count({
-        where: {
-          facultyId: faculty.id,
-          academicYearId,
-          courseId,
-        },
+        where: { facultyId: faculty.id, academicYearId, courseId },
       });
 
       const progress =
@@ -86,18 +97,12 @@ export async function GET(req) {
           ? 0
           : Math.round((completedSubtopics / totalSubtopics) * 100);
 
-      // 5️⃣ Last updated
       const lastActivity = await prisma.subTopicCoverage.findFirst({
-        where: {
-          facultyId: faculty.id,
-          academicYearId,
-          courseId,
-        },
+        where: { facultyId: faculty.id, academicYearId, courseId },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       });
 
-      // 6️⃣ Status
       let status = "LAGGING";
       if (progress >= 70) status = "ON_TRACK";
       else if (progress >= 40) status = "MODERATE";
@@ -105,35 +110,26 @@ export async function GET(req) {
       results.push({
         facultyId: faculty.id,
         facultyName: faculty.name,
-        topicsCovered: `${completedSubtopics} / ${totalSubtopics}`,
+        topicsCovered: `${completedSubtopics}/${totalSubtopics}`,
         progress,
         status,
+        department: faculty.department.dept_name,
         lastUpdated: lastActivity?.createdAt ?? null,
       });
     }
 
-    // 7️⃣ Summary
     const totalFaculties = results.length;
-
     const averageProgress =
       totalFaculties === 0
         ? 0
         : Math.round(
             results.reduce((sum, f) => sum + f.progress, 0) / totalFaculties,
           );
-
     const onTrack = results.filter((f) => f.status === "ON_TRACK").length;
-
     const lagging = results.filter((f) => f.status === "LAGGING").length;
 
     return NextResponse.json({
-      summary: {
-        courseId,
-        totalFaculties,
-        averageProgress,
-        onTrack,
-        lagging,
-      },
+      summary: { courseId, totalFaculties, averageProgress, onTrack, lagging },
       faculties: results,
     });
   } catch (error) {
