@@ -38,8 +38,7 @@ export default function AdminDashboardLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
-
-  const role = "HOD";
+  const [role, setrole] = useState(null);
 
   const menu = [
     {
@@ -141,6 +140,25 @@ export default function AdminDashboardLayout({ children }) {
 
     fetchActiveYear();
   }, []);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const res = await fetch("/api/me");
+        if (!res.ok) throw new Error("Failed");
+
+        const data = await res.json();
+
+        setrole(data.user?.facultyRole?.description ?? null);
+      } catch (error) {
+        console.error("Role check failed:", error);
+        setrole(null);
+      }
+    };
+
+    checkRole();
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50">
       {/* TOP NAVBAR */}
