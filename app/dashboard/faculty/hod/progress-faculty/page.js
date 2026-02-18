@@ -451,7 +451,7 @@ export default function FacultyProgressDashboard() {
                     );
                     return (
                       <tr
-                        key={topic.id}
+                        key={topic.topicId}
                         className="hover:bg-blue-50/30 transition-colors duration-150 group"
                       >
                         <td className="px-6 py-5">
