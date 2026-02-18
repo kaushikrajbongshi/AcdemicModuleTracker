@@ -35,7 +35,7 @@ export async function GET() {
 
     // 2️⃣ Faculty courses
     const facultyCourses = await prisma.facultyCourse.findMany({
-      where: { facultyId },
+      where: { facultyId, academicYearId },
       select: { courseId: true },
     });
 

@@ -136,7 +136,7 @@ export default function HODOverviewDashboard() {
           return {
             id: f.facultyId,
             name: f.facultyName,
-            department: "Computer Science", // can be API later
+            department: f.department, // can be API later
             courses: f.courses?.length ? f.courses.join(", ") : "—",
             progress,
             status:

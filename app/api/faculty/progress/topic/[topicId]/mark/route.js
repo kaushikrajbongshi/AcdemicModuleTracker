@@ -13,7 +13,6 @@ export async function POST(request, { params }) {
     const cookieStore = await cookies();
     const topicId = Number(Params.topicId);
 
-
     const token = cookieStore.get("LOGIN_INFO")?.value;
     if (!token) {
       return NextResponse.json(
@@ -120,12 +119,22 @@ export async function POST(request, { params }) {
 export async function DELETE(request, { params }) {
   const Params = await params;
   try {
-    // const facultyId = auth.user.id;
     const topicId = Number(Params.topicId);
+    const cookieStore = await cookies();
+    const { courseId, semesterId } = await request.json();
 
-    const { courseId, semesterId, faculty_Id } = await request.json();
+    const token = cookieStore.get("LOGIN_INFO")?.value;
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
 
+    const decoded = verifyToken(token);
+    const faculty_Id = decoded.id;
     const facultyId = Number(faculty_Id);
+
     const activeYear = await prisma.academicYear.findFirst({
       where: { isActive: true },
       select: { id: true },

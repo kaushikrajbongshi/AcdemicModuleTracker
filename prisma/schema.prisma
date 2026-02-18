@@ -75,12 +75,12 @@ model Student {
   status     Status @default(A)
   currentSem String @default("01") @db.VarChar(2)
 
-  academicYearId Int // CURRENT academic year
+  academicYearId Int 
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
 
   semester             Semester              @relation(fields: [currentSem], references: [semester_id], onDelete: Restrict)
   studentCourses       StudentCourse[]
-  studentAcademicYears StudentAcademicYear[] // HISTORY (source of truth)
+  studentAcademicYears StudentAcademicYear[] 
 
   created_at DateTime @default(now()) @db.Timestamp(0)
   updated_at DateTime @updatedAt @db.Timestamp(0)
@@ -162,17 +162,17 @@ model FacultyCourse {
   id             Int      @id @default(autoincrement())
   facultyId      Int
   courseId       String
-  academicYearId Int // ✅ NEW
+  academicYearId Int 
   created_at     DateTime @default(now()) @db.Timestamp(0)
 
   faculty      Faculty      @relation(fields: [facultyId], references: [id], onDelete: Cascade)
   course       Course       @relation(fields: [courseId], references: [course_id], onDelete: Cascade)
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade) // ✅ NEW
 
-  @@unique([facultyId, courseId, academicYearId]) // ✅ UPDATED
+  @@unique([facultyId, courseId, academicYearId]) 
   @@index([facultyId])
   @@index([courseId])
-  @@index([academicYearId]) // ✅ NEW
+  @@index([academicYearId]) 
   @@map("faculty_course_mapping")
 }
 
@@ -311,7 +311,7 @@ model StudentAcademicYear {
   @@unique([studentId, academicYearId])
   @@index([studentId])
   @@index([academicYearId])
-  @@index([studentId, status]) // ✅ ADDED (IMPORTANT)
+  @@index([studentId, status])
   @@map("student_academic_year")
 }
 

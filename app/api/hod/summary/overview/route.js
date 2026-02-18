@@ -1,10 +1,45 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/utils/auth";
 
 export async function GET() {
   try {
-    // 🔐 TEMP: Replace with session-based HOD later
-    const hodDepartmentId = "CSE";
+    const cookieStore = await cookies();
+    const token = cookieStore.get("LOGIN_INFO")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = verifyToken(token);
+    const facultyId = decoded.id;
+
+    if (decoded.faculty_role !== "HOD") {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized Only for HOD" },
+        { status: 401 },
+      );
+    }
+
+    // Find HOD
+    const hod = await prisma.faculty.findUnique({
+      where: { id: facultyId },
+      select: {
+        dept_id: true,
+        department: { select: { dept_name: true } },
+      },
+    });
+
+    if (!hod) {
+      return NextResponse.json({ message: "HOD not found" }, { status: 404 });
+    }
+
+    const hodDepartmentId = hod.dept_id;
+    const hodDepartmentName = hod.department.dept_name;
 
     // 1️⃣ Active academic year
     const academicYear = await prisma.academicYear.findFirst({
@@ -15,34 +50,24 @@ export async function GET() {
     if (!academicYear) {
       return NextResponse.json(
         { message: "Active academic year not found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const academicYearId = academicYear.id;
-
-    // 2️⃣ Faculties under HOD department
     const faculties = await prisma.faculty.findMany({
       where: {
-        facultyCourses: {
-          some: {
-            course: {
-              dept_id: hodDepartmentId,
-            },
-          },
-        },
+        dept_id: hodDepartmentId,
+        status: "A",
       },
       select: {
         id: true,
         name: true,
         facultyCourses: {
+          where: { academicYearId },
           select: {
             courseId: true,
-            course: {
-              select: {
-                course_name: true,
-              },
-            },
+            course: { select: { course_name: true } },
           },
         },
       },
@@ -51,28 +76,26 @@ export async function GET() {
     let facultyResults = [];
 
     for (const faculty of faculties) {
-      // ✅ Extract courseIds correctly
-      const courseIds = faculty.facultyCourses.map(
-        (fc) => fc.courseId
-      );
+      const courseIds = faculty.facultyCourses.map((fc) => fc.courseId);
+      const courses = faculty.facultyCourses.map((fc) => fc.course.course_name);
 
-      // ✅ Extract course names
-      const courses = faculty.facultyCourses.map(
-        (fc) => fc.course.course_name
-      );
+      if (courseIds.length === 0) {
+        facultyResults.push({
+          facultyId: faculty.id,
+          facultyName: faculty.name,
+          department: hodDepartmentName,
+          courses: [],
+          progress: 0,
+          status: "LAGGING",
+          lastUpdated: null,
+        });
+        continue;
+      }
 
-      if (courseIds.length === 0) continue;
-
-      // 3️⃣ Total subtopics (all assigned courses)
       const totalSubtopics = await prisma.subTopic.count({
-        where: {
-          topic: {
-            courseId: { in: courseIds },
-          },
-        },
+        where: { topic: { courseId: { in: courseIds } } },
       });
 
-      // 4️⃣ Covered subtopics
       const completedSubtopics = await prisma.subTopicCoverage.count({
         where: {
           facultyId: faculty.id,
@@ -86,7 +109,6 @@ export async function GET() {
           ? 0
           : Math.round((completedSubtopics / totalSubtopics) * 100);
 
-      // 5️⃣ Last updated activity
       const lastActivity = await prisma.subTopicCoverage.findFirst({
         where: {
           facultyId: faculty.id,
@@ -97,7 +119,6 @@ export async function GET() {
         select: { createdAt: true },
       });
 
-      // 6️⃣ Status
       let status = "LAGGING";
       if (progress >= 70) status = "ON_TRACK";
       else if (progress >= 40) status = "MODERATE";
@@ -105,46 +126,36 @@ export async function GET() {
       facultyResults.push({
         facultyId: faculty.id,
         facultyName: faculty.name,
-        courses, // ✅ REAL course names
+        department: hodDepartmentName,
+        courses,
         progress,
         status,
         lastUpdated: lastActivity?.createdAt ?? null,
       });
     }
 
-    // 7️⃣ Summary
     const totalFaculties = facultyResults.length;
-
     const averageProgress =
       totalFaculties === 0
         ? 0
         : Math.round(
             facultyResults.reduce((sum, f) => sum + f.progress, 0) /
-              totalFaculties
+              totalFaculties,
           );
-
     const onTrack = facultyResults.filter(
-      (f) => f.status === "ON_TRACK"
+      (f) => f.status === "ON_TRACK",
     ).length;
-
-    const lagging = facultyResults.filter(
-      (f) => f.status === "LAGGING"
-    ).length;
+    const lagging = facultyResults.filter((f) => f.status === "LAGGING").length;
 
     return NextResponse.json({
-      summary: {
-        totalFaculties,
-        averageProgress,
-        onTrack,
-        lagging,
-      },
+      summary: { totalFaculties, averageProgress, onTrack, lagging },
       faculties: facultyResults,
     });
   } catch (error) {
     console.error("HOD overview error:", error);
     return NextResponse.json(
       { message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -124,27 +124,27 @@ export default function AdminDashboardLayout({ children }) {
       icon: BookOpenCheck,
       href: "/dashboard/admin/AddTopic",
     },
-    {
-      title: "Student",
-      icon: UserPlus,
-      children: [
-        {
-          name: "Add Student",
-          href: "/dashboard/admin/addStudent",
-          icon: UserCheck,
-        },
-        {
-          name: "Delete Student",
-          href: "/dashboard/admin/deleteStudent",
-          icon: UserMinus,
-        },
-        {
-          name: "Update Student",
-          href: "/dashboard/admin/updateStudent",
-          icon: UserCog,
-        },
-      ],
-    },
+    // {
+    //   title: "Student",
+    //   icon: UserPlus,
+    //   children: [
+    //     {
+    //       name: "Add Student",
+    //       href: "/dashboard/admin/addStudent",
+    //       icon: UserCheck,
+    //     },
+    //     {
+    //       name: "Delete Student",
+    //       href: "/dashboard/admin/deleteStudent",
+    //       icon: UserMinus,
+    //     },
+    //     {
+    //       name: "Update Student",
+    //       href: "/dashboard/admin/updateStudent",
+    //       icon: UserCog,
+    //     },
+    //   ],
+    // },
 
     {
       title: "Reports",

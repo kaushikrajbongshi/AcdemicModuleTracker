@@ -17,7 +17,7 @@ export default function ProgressDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [coursesLoading, setCoursesLoading] = useState(true);
-  const [topicsLoading, setTopicsLoading] = useState(true);
+  const [topicsLoading, setTopicsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   /* =========================
@@ -97,6 +97,9 @@ export default function ProgressDashboard() {
   useEffect(() => {
     if (selectedCourseId) {
       fetchTopics(selectedCourseId);
+    } else {
+      setTopics([]);
+      setTopicsLoading(false);
     }
   }, [selectedCourseId]);
 
@@ -165,12 +168,24 @@ export default function ProgressDashboard() {
       {/* ================= COURSE-WISE ================= */}
       {coursesLoading ? (
         <DashboardSkeleton />
+      ) : courses.length === 0 ? (
+        <div className="text-center py-6 text-gray-500">
+          No courses assigned for this academic year.
+        </div>
       ) : (
         <CourseWiseProgress courses={courses} />
       )}
       {/* ================= TOPIC-WISE ================= */}
       {topicsLoading ? (
         <DashboardSkeleton />
+      ) : !selectedCourseId ? (
+        <div className="text-center py-12 text-gray-500">
+          No course assigned for this academic year.
+        </div>
+      ) : topics.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          No topics available for this course.
+        </div>
       ) : (
         <TopicWiseTable
           topics={topics}

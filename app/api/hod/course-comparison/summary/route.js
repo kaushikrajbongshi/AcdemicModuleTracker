@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/utils/auth";
 
 export async function GET() {
   try {
-    // 🔐 TEMP: replace with HOD session later
-    const hodDepartmentId = "CSE";
-    
     const cookieStore = await cookies();
     const token = cookieStore.get("LOGIN_INFO")?.value;
 
@@ -25,13 +24,26 @@ export async function GET() {
       );
     }
 
+    const faculty = await prisma.faculty.findUnique({
+      where: { id: decoded.id },
+      select: { dept_id: true },
+    });
+
+    if (!faculty) {
+      return NextResponse.json(
+        { success: false, message: "Faculty not found" },
+        { status: 404 },
+      );
+    }
+
+    const hodDepartmentId = faculty.dept_id;
+
     // 1️⃣ Active academic year
     const academicYear = await prisma.academicYear.findFirst({
       where: { isActive: true },
       select: { id: true },
     });
 
-    
     if (!academicYear) {
       return NextResponse.json(
         { message: "Active academic year not found" },

@@ -8,19 +8,17 @@ export default function AddFaculty() {
   const { register, handleSubmit, reset } = useForm();
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState([]);
+  const [dept, setDept] = useState([]);
 
   const fieldClass =
     "w-full px-3 py-2 mb-3 text-sm text-black bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:border-gray-500";
 
   const onSubmit = async (data) => {
     setLoading(true);
-    const res = await fetch("/api/admin/user", {
+    const res = await fetch("/api/admin/faculty/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        userType: "faculty",
-      }),
+      body: JSON.stringify(data),
     });
 
     const result = await res.json();
@@ -37,7 +35,14 @@ export default function AddFaculty() {
       const role_result = await res.json();
       setRole(role_result.result);
     };
+
+    const fetchDept = async () => {
+      const res = await fetch("/api/admin/department/getAll");
+      const departments = await res.json();
+      setDept(departments.result);
+    };
     fetchRole();
+    fetchDept();
   }, []);
 
   return (
@@ -45,7 +50,9 @@ export default function AddFaculty() {
       onSubmit={handleSubmit(onSubmit)}
       className="w-[40vw] p-5 border border-gray-300 rounded-lg m-auto mt-[10vh]"
     >
-      <h3 className="mb-4 text-xl font-semibold text-black">Add Faculty</h3>
+      <h3 className="mb-6 text-2xl font-semibold text-black text-center ">
+        Add Faculty
+      </h3>
 
       {/* Faculty ID */}
       <input
@@ -83,6 +90,19 @@ export default function AddFaculty() {
         placeholder="Password"
         className={fieldClass}
       />
+
+      <select
+        id="dept_id"
+        {...register("dept_id", { required: "Please select a department" })}
+        className="w-full p-2 mb-2 border border-gray-300 text-black mt-2 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-gray-900"
+      >
+        <option value="">Select Department</option>
+        {dept.map((dept) => (
+          <option key={dept.dept_id} value={dept.dept_id}>
+            {dept.dept_id} - {dept.dept_name}
+          </option>
+        ))}
+      </select>
 
       <select
         {...register("role", { required: true })}

@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
@@ -237,8 +236,6 @@ export default function MarkCourseTopic() {
       body: JSON.stringify({
         courseId: selectedCourse,
         semesterId,
-        academic_YearId,
-        faculty_Id,
       }),
     });
 
@@ -286,7 +283,6 @@ export default function MarkCourseTopic() {
           // If user wants to uncheck the parent, they should do it manually
         }
       }
-      // 🔥 NEW PART ENDS HERE
 
       setTree([...tree]);
     } catch (err) {
@@ -525,7 +521,9 @@ export default function MarkCourseTopic() {
                     strokeLinejoin="round"
                     className="transition-transform duration-500"
                     style={{
-                      transform: isRefreshing ? "rotate(360deg)" : "rotate(0deg)",
+                      transform: isRefreshing
+                        ? "rotate(360deg)"
+                        : "rotate(0deg)",
                     }}
                   >
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
@@ -567,5 +565,3 @@ export default function MarkCourseTopic() {
     </>
   );
 }
-
-

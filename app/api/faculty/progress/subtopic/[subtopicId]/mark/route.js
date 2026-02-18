@@ -124,8 +124,20 @@ export async function DELETE(request, { params }) {
 
   try {
     const subtopicId = Number(Params.subtopicId);
+    const cookieStore = await cookies();
+    const token = cookieStore.get("LOGIN_INFO")?.value;
 
-    const { courseId, semesterId, faculty_Id } = await request.json();
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const decoded = verifyToken(token);
+    const faculty_Id = decoded.id;
+
+    const { courseId, semesterId } = await request.json();
     const facultyId = Number(faculty_Id);
 
     const activeYear = await prisma.academicYear.findFirst({
