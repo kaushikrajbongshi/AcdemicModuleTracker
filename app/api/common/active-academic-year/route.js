@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    const guard = await roleGuard(["TEACHER"])(req);
+    if (guard) return guard;
     const year = await prisma.academicYear.findFirst({
       where: { isActive: true },
     });

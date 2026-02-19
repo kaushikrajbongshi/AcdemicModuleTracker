@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/utils/auth";
+import { roleGuard } from "@/utils/roleguard";
 
 export async function GET() {
   try {
+    const guard = await roleGuard(["HOD"])(req);
+    if (guard) return guard;
+
     const cookieStore = await cookies();
     const token = cookieStore.get("LOGIN_INFO")?.value;
 
@@ -43,6 +47,9 @@ export async function GET() {
     return NextResponse.json({ success: true, faculties });
   } catch (error) {
     console.error("HOD faculty fetch error:", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

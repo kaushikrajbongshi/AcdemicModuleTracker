@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/utils/auth";
+import { roleGuard } from "@/utils/roleguard";
 
 export async function GET(req) {
   try {
+    const guard = await roleGuard(["HOD"])(req);
+    if (guard) return guard;
+
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 

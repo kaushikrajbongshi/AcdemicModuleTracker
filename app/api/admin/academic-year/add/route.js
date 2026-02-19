@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { roleGuard } from "@/utils/roleguard";
 
-/**
- * POST
- * body: { label: "2025-2026" }
- */
 export async function POST(req) {
   try {
+    const guard = await roleGuard(["admin"])(req);
+    if (guard) return guard;
+
     const { label } = await req.json();
 
     if (!label) {

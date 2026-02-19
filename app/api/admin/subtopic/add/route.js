@@ -4,8 +4,8 @@ import { addSubTopic } from "./subtopic.controller";
 
 export async function POST(req) {
   // Role guard
-  // const guard = await roleGuard(["admin"])(req);
-  // if (guard) return guard;
+    const guard = await roleGuard(["admin"])(req);
+    if (guard) return guard;
 
   // Get data
   const {

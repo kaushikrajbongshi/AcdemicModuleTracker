@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
+import { roleGuard } from "@/utils/roleguard";
 
 export async function GET() {
   try {
+    const guard = await roleGuard(["TEACHER"])(req);
+    if (guard) return guard;
+
     const cookieStore = await cookies();
     const token = cookieStore.get("LOGIN_INFO")?.value;
 
@@ -17,7 +21,6 @@ export async function GET() {
 
     const decoded = verifyToken(token);
     const facultyId = decoded.id;
-
 
     // 1️⃣ Get active academic year
     const activeYear = await prisma.academicYear.findFirst({

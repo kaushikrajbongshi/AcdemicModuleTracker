@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/utils/auth";
+import { roleGuard } from "@/utils/roleguard";
 
 export async function GET(req) {
   try {
+    const guard = await roleGuard(["HOD"])(req);
+    if (guard) return guard;
+
     const { searchParams } = new URL(req.url);
     const facultyId = searchParams.get("facultyId");
     const courseId = searchParams.get("courseId");
@@ -23,7 +27,10 @@ export async function GET(req) {
     }
 
     if (!facultyId || !courseId) {
-      return NextResponse.json({ message: "facultyId and courseId are required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "facultyId and courseId are required" },
+        { status: 400 },
+      );
     }
 
     // ✅ Get HOD's dept_id from DB
@@ -63,7 +70,10 @@ export async function GET(req) {
     });
 
     if (!academicYear) {
-      return NextResponse.json({ message: "Active academic year not found" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Active academic year not found" },
+        { status: 400 },
+      );
     }
 
     const academicYearId = academicYear.id;
@@ -123,13 +133,19 @@ export async function GET(req) {
       summary: {
         overallProgress,
         totalTopics: topics.length,
-        completedTopics: topicResults.filter((t) => t.status === "completed").length,
-        pendingTopics: topics.length - topicResults.filter((t) => t.status === "completed").length,
+        completedTopics: topicResults.filter((t) => t.status === "completed")
+          .length,
+        pendingTopics:
+          topics.length -
+          topicResults.filter((t) => t.status === "completed").length,
       },
       topics: topicResults,
     });
   } catch (error) {
     console.error("Faculty progress error:", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

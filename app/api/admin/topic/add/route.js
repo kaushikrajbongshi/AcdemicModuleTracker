@@ -4,9 +4,8 @@ import { addTopic } from "./topic.controller";
 
 export async function POST(req) {
   // Role guard
-  // const guard = await roleGuard(["admin"])(req);
-  // if (guard) return guard;
-
+  const guard = await roleGuard(["admin"])(req);
+  if (guard) return guard;
   // Get data
   const {
     topic_name,
@@ -31,19 +30,19 @@ export async function POST(req) {
     // 6. Return success
     return NextResponse.json(
       { success: true, message: "Successfully added Topic", result },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     if (error.code === "P2002") {
       return NextResponse.json(
         { success: false, message: "Something went wrong!" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { success: false, message: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

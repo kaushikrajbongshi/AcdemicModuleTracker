@@ -4,8 +4,8 @@ import { createCourse } from "./addCourse.controller";
 
 export async function POST(req) {
   // 1. Role guard
-  // const guard = await roleGuard(["admin"])(req);
-  // if (guard) return guard;
+  const guard = await roleGuard(["admin"])(req);
+  if (guard) return guard;
 
   // 2. Get data
   const { course_id, course_name, dept_id, semester_id } = await req.json();
@@ -29,7 +29,6 @@ export async function POST(req) {
         { status: 409 },
       );
     }
-
 
     // 5. Save faculty
     const result = await createCourse({

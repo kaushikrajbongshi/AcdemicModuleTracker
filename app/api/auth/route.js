@@ -10,65 +10,97 @@ export async function POST(req) {
     // Validate required fields
     if (!email || !password || !role) {
       return NextResponse.json(
-        { success: false },
-        { message: "All fields are required" },
-        { status: 400 },
+        { success: false, message: "All fields are required" },
+        { status: 400 }
       );
     }
 
-    // Get user from correct table
-    const models = {
-      admin: prisma.admin,
-      faculty: prisma.faculty,
-      student: prisma.student,
-    };
+    let user;
 
-    // Check email according to role
-    const model = models[role];
-    if (!model) {
+    // =========================
+    // ADMIN LOGIN
+    // =========================
+    if (role === "admin") {
+      user = await prisma.admin.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "Admin not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // =========================
+    // FACULTY LOGIN
+    // =========================
+    else if (role === "faculty") {
+      user = await prisma.faculty.findUnique({
+        where: { email },
+        include: { facultyRole: true },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "Faculty not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // =========================
+    // STUDENT LOGIN
+    // =========================
+    else if (role === "student") {
+      user = await prisma.student.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "Student not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    else {
       return NextResponse.json(
-        { success: false },
-        { message: "Invalid role" },
-        { status: 404 },
+        { success: false, message: "Invalid role" },
+        { status: 400 }
       );
     }
 
-    const user = await model.findUnique({
-      where: { email },
-      include: {
-        facultyRole: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false },
-        { message: "User not found" },
-        { status: 404 },
-      );
-    }
-
-    // Compare password
+    // =========================
+    // PASSWORD CHECK
+    // =========================
     const isMatch = await compare_password(password, user.password);
+
     if (!isMatch) {
       return NextResponse.json(
-        { success: false },
-        { message: "Incorrect password" },
-        { status: 401 },
+        { success: false, message: "Incorrect password" },
+        { status: 401 }
       );
     }
 
-    // Generate JWT token
+    // =========================
+    // GENERATE TOKEN
+    // =========================
     const token = generate_jsonwebtoken({
       id: user.id,
       role: role,
-      faculty_role: user.facultyRole.description,
+      faculty_role:
+        role === "faculty" ? user.facultyRole.description : null,
       name: user.name,
     });
 
-
-    // Set cookie - AWAIT cookies() first
+    // =========================
+    // SET COOKIE
+    // =========================
     const cookieStore = await cookies();
+
     cookieStore.set("LOGIN_INFO", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -77,17 +109,24 @@ export async function POST(req) {
       path: "/",
     });
 
+    // =========================
+    // SUCCESS RESPONSE
+    // =========================
     return NextResponse.json(
-      { success: true, role },
-      { message: "Login successful", token },
-      { status: 200 },
+      {
+        success: true,
+        role,
+        message: "Login successful",
+      },
+      { status: 200 }
     );
+
   } catch (error) {
     console.error("Login error:", error);
+
     return NextResponse.json(
-      { success: false },
-      { message: "Internal server error", error: error.message },
-      { status: 500 },
+      { success: false, message: "Internal server error" },
+      { status: 500 }
     );
   }
 }

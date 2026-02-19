@@ -4,8 +4,8 @@ import { getAllSubTopic } from "./fetchAllTopic.controller";
 
 export async function GET(req) {
   // Role guard
-  // const guard = await roleGuard(["admin"])(req);
-  // if (guard) return guard;
+    const guard = await roleGuard(["TEACHER"])(req);
+    if (guard) return guard;
 
   // Get URL object
   const { searchParams } = new URL(req.url);

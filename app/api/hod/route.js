@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { roleGuard } from "@/utils/roleguard";
 
 export async function GET(req) {
   try {
+    const guard = await roleGuard(["HOD"])(req);
+    if (guard) return guard;
+
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
     if (!courseId) {
       return NextResponse.json(
         { message: "courseId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -22,7 +26,7 @@ export async function GET(req) {
     if (!academicYear) {
       return NextResponse.json(
         { message: "Active academic year not found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,11 +101,11 @@ export async function GET(req) {
       totalFaculties === 0
         ? 0
         : Math.round(
-            results.reduce((sum, f) => sum + f.progress, 0) / totalFaculties
+            results.reduce((sum, f) => sum + f.progress, 0) / totalFaculties,
           );
 
-    const onTrack = results.filter(f => f.status === "ON_TRACK").length;
-    const lagging = results.filter(f => f.status === "LAGGING").length;
+    const onTrack = results.filter((f) => f.status === "ON_TRACK").length;
+    const lagging = results.filter((f) => f.status === "LAGGING").length;
 
     return NextResponse.json({
       summary: {
@@ -117,7 +121,7 @@ export async function GET(req) {
     console.error("Course comparison error:", error);
     return NextResponse.json(
       { message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/utils/auth";
+import { roleGuard } from "@/utils/roleguard";
 
 /* ======================================================
    MARK TOPIC (and ALL its subtopics)
    ====================================================== */
 export async function POST(request, { params }) {
+  const guard = await roleGuard(["TEACHER"])(req);
+  if (guard) return guard;
+
   const Params = await params;
   try {
     const { courseId, semesterId } = await request.json();

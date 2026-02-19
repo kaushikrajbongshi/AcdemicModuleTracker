@@ -19,9 +19,9 @@ export default function MarkCourseTopic() {
   // Refresh button animation state
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  //For now it will hardcode
-  const semesterId = "01"; // later from auth / context
-  const faculty_Id = 3;
+  // //For now it will hardcode
+  // const semesterId = "01"; // later from auth / context
+  // const faculty_Id = 3;
 
   /* ================= FETCH COURSES ================= */
   const fetchCourse = async () => {
@@ -240,7 +240,7 @@ export default function MarkCourseTopic() {
     });
 
     const data = await res.json();
-    console.log(data);
+
 
     if (!res.ok) {
       throw new Error(data.message || "Action failed");
@@ -267,7 +267,7 @@ export default function MarkCourseTopic() {
       };
       updateNodeAndChildren(node);
 
-      // 🔥 NEW PART STARTS HERE
+
       if (node.type === "subtopic") {
         const parentTopic = findParentTopic(node, tree);
 
@@ -301,7 +301,7 @@ export default function MarkCourseTopic() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchTopicsByCourse(selectedCourse);
-    setTimeout(() => setIsRefreshing(false), 600); // Keep animation for 600ms
+    setTimeout(() => setIsRefreshing(false), 600); 
   };
 
   /* ================= TREE NODE ================= */

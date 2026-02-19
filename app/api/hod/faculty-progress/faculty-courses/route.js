@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/utils/auth";
+import { roleGuard } from "@/utils/roleguard";
 
 export async function GET(req) {
   try {
+    const guard = await roleGuard(["HOD"])(req);
+    if (guard) return guard;
+    
     const { searchParams } = new URL(req.url);
     const facultyId = searchParams.get("facultyId");
 
@@ -22,7 +26,10 @@ export async function GET(req) {
     }
 
     if (!facultyId) {
-      return NextResponse.json({ message: "facultyId is required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "facultyId is required" },
+        { status: 400 },
+      );
     }
 
     // ✅ Get HOD's dept_id from DB
@@ -52,7 +59,10 @@ export async function GET(req) {
     });
 
     if (!academicYear) {
-      return NextResponse.json({ message: "Active academic year not found" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Active academic year not found" },
+        { status: 400 },
+      );
     }
 
     // ✅ Only courses assigned in the active academic year
@@ -79,6 +89,9 @@ export async function GET(req) {
     return NextResponse.json({ courses });
   } catch (error) {
     console.error("Faculty courses error:", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

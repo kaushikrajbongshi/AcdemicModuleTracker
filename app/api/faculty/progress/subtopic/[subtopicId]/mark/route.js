@@ -6,6 +6,9 @@ import { verifyToken } from "@/utils/auth";
 import { cookies } from "next/headers";
 
 export async function POST(request, { params }) {
+  const guard = await roleGuard(["TEACHER"])(req);
+  if (guard) return guard;
+
   const Params = await params;
 
   try {

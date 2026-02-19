@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function DELETE(req, { params }) {
+  const guard = await roleGuard(["admin"])(req);
+  if (guard) return guard;
+  
   const Params = await params;
   try {
     const topicId = Number(Params.id);

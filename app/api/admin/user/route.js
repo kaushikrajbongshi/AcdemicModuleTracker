@@ -6,8 +6,8 @@ import { createStudent } from "./student.controller";
 
 export async function POST(req) {
   // 1. Role guard
-  // const guard = await roleGuard(["admin"])(req);
-  // if (guard) return guard;
+  const guard = await roleGuard(["admin"])(req);
+  if (guard) return guard;
 
   // 2. Get data
   const {
@@ -31,7 +31,7 @@ export async function POST(req) {
           success: false,
           message: "Invalid userType, must be either 'faculty' or 'student'",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +52,7 @@ export async function POST(req) {
       // 6. Return success
       return NextResponse.json(
         { success: true, message: "Successfully added faculty", result },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -69,20 +69,20 @@ export async function POST(req) {
       // 6. Return success
       return NextResponse.json(
         { success: true, message: "Successfully added faculty", result },
-        { status: 200 }
+        { status: 200 },
       );
     }
   } catch (error) {
     if (error.code === "P2002") {
       return NextResponse.json(
         { success: false, message: "Email already exists!" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { success: false, message: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { roleGuard } from "@/utils/roleguard";
 
-/**
- * PATCH
- * body: { yearId: 3 }
- */
 export async function PATCH(req) {
   try {
+    const guard = await roleGuard(["admin"])(req);
+    if (guard) return guard;
+    
     const { yearId } = await req.json();
 
     if (!yearId) {
