@@ -4,8 +4,7 @@ import { addTopic } from "./topic.controller";
 
 export async function POST(req) {
   // Role guard
-  const guard = await roleGuard(["admin"])(req);
-  if (guard) return guard;
+
   // Get data
   const {
     topic_name,

@@ -8,8 +8,7 @@ import { roleGuard } from "@/utils/roleguard";
    MARK TOPIC (and ALL its subtopics)
    ====================================================== */
 export async function POST(request, { params }) {
-  const guard = await roleGuard(["TEACHER"])(req);
-  if (guard) return guard;
+
 
   const Params = await params;
   try {

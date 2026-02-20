@@ -4,9 +4,6 @@ import { getAllDepartment } from "./departments.controller";
 
 export async function GET(req) {
   
-  const guard = await roleGuard(["TEACHER"])(req);
-  if (guard) return guard;
-
   try {
     // Save faculty
     const result = await getAllDepartment();

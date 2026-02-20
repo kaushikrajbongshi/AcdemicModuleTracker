@@ -4,9 +4,6 @@ import { roleGuard } from "@/utils/roleguard";
 
 export async function POST(req) {
   try {
-    const guard = await roleGuard(["admin"])(req);
-    if (guard) return guard;
-
     const { label } = await req.json();
 
     if (!label) {

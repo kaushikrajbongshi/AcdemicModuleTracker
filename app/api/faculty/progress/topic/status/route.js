@@ -6,8 +6,7 @@ import { roleGuard } from "@/utils/roleguard";
 
 export async function GET(req) {
   try {
-    const guard = await roleGuard(["TEACHER"])(req);
-    if (guard) return guard;
+
 
     const { searchParams } = new URL(req.url);
 

@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { roleGuard } from "@/utils/roleguard";
 import { createCourse } from "./addCourse.controller";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req) {
   // 1. Role guard
-  const guard = await roleGuard(["admin"])(req);
-  if (guard) return guard;
 
   // 2. Get data
   const { course_id, course_name, dept_id, semester_id } = await req.json();
 
   try {
-    if (!dept_name || !course_id || !dept_id || !semester_id) {
+    if (!course_name || !course_id || !dept_id || !semester_id) {
       return NextResponse.json(
         { success: false, message: "All field is required" },
         { status: 400 },
@@ -37,6 +35,7 @@ export async function POST(req) {
       dept_id,
       semester_id,
     });
+    console.log(result);
 
     // 6. Return success
     return NextResponse.json(

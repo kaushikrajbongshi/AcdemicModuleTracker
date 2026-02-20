@@ -4,8 +4,7 @@ import { roleGuard } from "@/utils/roleguard";
 
 export async function PATCH(req) {
   try {
-    const guard = await roleGuard(["admin"])(req);
-    if (guard) return guard;
+
     
     const { yearId } = await req.json();
 

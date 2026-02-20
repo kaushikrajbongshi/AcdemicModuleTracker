@@ -4,8 +4,7 @@ import { addFaculty } from "./add.controller";
 
 export async function POST(req) {
   // 1. Role guard
-  const guard = await roleGuard(["admin"])(req);
-  if (guard) return guard;
+
 
   // 2. Get data
   const body = await req.json();

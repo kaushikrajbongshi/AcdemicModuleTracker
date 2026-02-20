@@ -4,8 +4,7 @@ import { getAllDepartment } from "./getall.controller";
 
 export async function GET(req) {
   // 1. Role guard
-  const guard = await roleGuard(["admin"])(req);
-  if (guard) return guard;
+
   try {
     const result = await getAllDepartment();
 

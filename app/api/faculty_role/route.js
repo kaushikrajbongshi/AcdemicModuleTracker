@@ -3,9 +3,6 @@ import { roleGuard } from "@/utils/roleguard";
 import { getAllFacultyRole } from "./faculty_role.controller";
 
 export async function GET(req) {
-  // Role guard
-  // const guard = await roleGuard(["admin"])(req);
-  // if (guard) return guard;
 
   try {
     // Save faculty

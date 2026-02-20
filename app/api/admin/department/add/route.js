@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req) {
   // 1. Role guard
-  const guard = await roleGuard(["admin"])(req);
-  if (guard) return guard;
+
 
   // 2. Get data
   const { dept_id, dept_name } = await req.json();

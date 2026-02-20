@@ -5,8 +5,7 @@ import { courseAssign } from "./assignCourse.controller";
 
 export async function POST(req) {
   // Role guard
-  const guard = await roleGuard(["admin"])(req);
-  if (guard) return guard;
+
   try {
     const { course_id, faculty_id } = await req.json();
 
