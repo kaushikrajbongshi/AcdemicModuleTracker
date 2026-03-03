@@ -25,6 +25,7 @@ import {
   ChartSpline,
   ListTodo,
   Calendar1,
+  History,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
@@ -39,6 +40,7 @@ export default function AdminDashboardLayout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
   const [role, setrole] = useState(null);
+  const [user, setUser] = useState(null);
 
   const menu = [
     {
@@ -57,15 +59,9 @@ export default function AdminDashboardLayout({ children }) {
       href: "/dashboard/faculty/course-coverage",
     },
     {
-      title: "Course",
-      icon: BookOpen,
-      children: [
-        {
-          name: "Assigned Course",
-          href: "/dashboard/faculty/assigned-course",
-          icon: ClipboardList,
-        },
-      ],
+      title: "Course History",
+      icon: History,
+      href: "/dashboard/faculty/course-history",
     },
     {
       title: "Reports",
@@ -149,6 +145,10 @@ export default function AdminDashboardLayout({ children }) {
 
         const data = await res.json();
 
+        if (data.user) {
+          setUser(data.user);
+        }
+
         setrole(data.user?.facultyRole?.description ?? null);
       } catch (error) {
         console.error("Role check failed:", error);
@@ -189,7 +189,7 @@ export default function AdminDashboardLayout({ children }) {
               <User className="w-4 h-4 text-indigo-600" />
             </div>
             <span className="text-sm font-medium text-gray-700">
-              Kaushik Rajbongshi
+              {user?.name || ""}
             </span>
             <ChevronDown className="w-4 h-4 text-gray-500" />
           </button>

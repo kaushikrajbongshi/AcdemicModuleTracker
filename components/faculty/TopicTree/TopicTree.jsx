@@ -12,16 +12,12 @@ export default function MarkCourseTopic() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationData, setConfirmationData] = useState({
     node: null,
-    action: "", // "check" or "uncheck"
+    action: "",
     affectedCount: 0,
   });
 
   // Refresh button animation state
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // //For now it will hardcode
-  // const semesterId = "01"; // later from auth / context
-  // const faculty_Id = 3;
 
   /* ================= FETCH COURSES ================= */
   const fetchCourse = async () => {
@@ -36,34 +32,63 @@ export default function MarkCourseTopic() {
 
   /* ================= FETCH TOPICS ================= */
   const fetchTopicsByCourse = async (courseId) => {
-    const res = await fetch(
-      `/api/admin/topic/fetchAllTopic?courseId=${courseId}`,
-      { cache: "no-store" },
-    );
-    const fetchedTopic = await res.json();
+    try {
+      const res = await fetch(
+        `/api/faculty/fetchAllTopic?courseId=${courseId}`,
+        { cache: "no-store" },
+      );
 
-    const status = await fetchMarkedStatus(courseId);
+      const fetchedTopic = await res.json();
 
-    const topicTree = fetchedTopic.result.map((t) => ({
-      id: t.topic_id,
-      name: t.topic_name,
-      topicId: t.topic_id,
-      type: "topic",
-      isOpen: false,
-      isChecked: status.markedTopics.includes(t.topic_id),
-      children: null,
-    }));
+      if (!res.ok || !fetchedTopic.success) {
+        console.error("Failed to fetch topics:", fetchedTopic.message);
+        setTree([]);
+        return;
+      }
 
-    setTree(topicTree);
+      const topics = fetchedTopic.result || [];
+
+      const status = await fetchMarkedStatus(courseId);
+
+      const topicTree = topics.map((t) => ({
+        id: t.topic_id,
+        name: t.topic_name,
+        topicId: t.topic_id,
+        type: "topic",
+        isOpen: false,
+        isChecked: status?.markedTopics?.includes(t.topic_id) || false,
+        children: null,
+      }));
+
+      setTree(topicTree);
+    } catch (error) {
+      console.error("Topic fetch error:", error);
+      setTree([]);
+    }
   };
 
   /* ================= Fetch marked topic and subtopic ================= */
 
   const fetchMarkedStatus = async (courseId) => {
-    const res = await fetch(
-      `/api/faculty/progress/topic/status/?facultyId=${faculty_Id}&courseId=${courseId}&semesterId=${semesterId}`,
-    );
-    return await res.json();
+    try {
+      const res = await fetch(
+        `/api/faculty/progress/topic/status?courseId=${courseId}`,
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { markedTopics: [], markedSubtopics: [] };
+      }
+
+      return {
+        markedTopics: data.markedTopics || [],
+        markedSubtopics: data.markedSubtopics || [],
+      };
+    } catch (error) {
+      console.error("Status fetch error:", error);
+      return { markedTopics: [], markedSubtopics: [] };
+    }
   };
 
   const handleCourseChange = async (e) => {
@@ -81,7 +106,7 @@ export default function MarkCourseTopic() {
   /* ================= FETCH SUBTOPICS ================= */
   const fetchSubTopics = async (topicId) => {
     const res = await fetch(
-      `/api/admin/subtopic/fetchAllsubTopic?topicId=${topicId}`,
+      `/api/faculty/fetchAllsubTopic?topicId=${topicId}`,
     );
     const data = await res.json();
 
@@ -235,12 +260,10 @@ export default function MarkCourseTopic() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         courseId: selectedCourse,
-        semesterId,
       }),
     });
 
     const data = await res.json();
-
 
     if (!res.ok) {
       throw new Error(data.message || "Action failed");
@@ -266,7 +289,6 @@ export default function MarkCourseTopic() {
         }
       };
       updateNodeAndChildren(node);
-
 
       if (node.type === "subtopic") {
         const parentTopic = findParentTopic(node, tree);
@@ -301,7 +323,7 @@ export default function MarkCourseTopic() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchTopicsByCourse(selectedCourse);
-    setTimeout(() => setIsRefreshing(false), 600); 
+    setTimeout(() => setIsRefreshing(false), 600);
   };
 
   /* ================= TREE NODE ================= */
