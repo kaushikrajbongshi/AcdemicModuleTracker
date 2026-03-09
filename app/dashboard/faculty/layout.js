@@ -95,6 +95,12 @@ export default function AdminDashboardLayout({ children }) {
       href: "/dashboard/faculty/hod/progress-faculty",
       role: "HOD",
     },
+    {
+      title: "History",
+      icon: History,
+      href: "/dashboard/faculty/hod/course-history",
+      role: "HOD",
+    },
   ];
 
   const handleNavigation = (href) => {
