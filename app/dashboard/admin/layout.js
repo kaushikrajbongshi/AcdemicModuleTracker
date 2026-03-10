@@ -146,11 +146,11 @@ export default function AdminDashboardLayout({ children }) {
     //   ],
     // },
 
-    {
-      title: "Reports",
-      icon: FileText,
-      href: "/dashboard/admin/reports",
-    },
+    // {
+    //   title: "Reports",
+    //   icon: FileText,
+    //   href: "/dashboard/admin/reports",
+    // },
   ];
 
   const handleNavigation = (href) => {
@@ -235,15 +235,15 @@ export default function AdminDashboardLayout({ children }) {
                 onClick={() => setDropdownOpen(false)}
               />
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                <a
+                {/* <a
                   href="/profile"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   onClick={() => setDropdownOpen(false)}
                 >
                   <User className="w-4 h-4 text-gray-500" />
                   Profile
-                </a>
-
+                </a> */}
+                {/* 
                 <a
                   href="/settings"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -251,7 +251,7 @@ export default function AdminDashboardLayout({ children }) {
                 >
                   <Settings className="w-4 h-4 text-gray-500" />
                   Settings
-                </a>
+                </a> */}
 
                 <div className="border-t border-gray-100 my-1"></div>
 
