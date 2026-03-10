@@ -208,7 +208,7 @@ export default function AdminDashboardLayout({ children }) {
               />
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                 <a
-                  href="/profile"
+                  href="/dashboard/faculty/profile"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   onClick={() => setDropdownOpen(false)}
                 >
@@ -217,7 +217,7 @@ export default function AdminDashboardLayout({ children }) {
                 </a>
 
                 <a
-                  href="/settings"
+                  href="/dashboard/faculty/settings"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   onClick={() => setDropdownOpen(false)}
                 >
@@ -265,7 +265,7 @@ export default function AdminDashboardLayout({ children }) {
               <div className="flex items-center justify-between">
                 {!collapsed && (
                   <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-                    Admin Panel
+                    Faculty Panel
                   </h2>
                 )}
                 <button
